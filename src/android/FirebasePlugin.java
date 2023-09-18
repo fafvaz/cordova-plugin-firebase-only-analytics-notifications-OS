@@ -33,6 +33,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.PermissionHelper;
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -76,6 +84,8 @@ public class FirebasePlugin extends CordovaPlugin {
   private static CallbackContext notificationCallbackContext;
   private static CallbackContext tokenRefreshCallbackContext;
   private static CallbackContext dynamicLinkCallback;
+  private CallbackContext callbackContext;
+  
 
   @Override
   protected void pluginInitialize() {
@@ -441,23 +451,28 @@ public class FirebasePlugin extends CordovaPlugin {
     });
   }
 
+  @Override
+    public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
+        if (requestCode == REQUEST_CODE_ENABLE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                callbackContext.success();
+            } else {
+                callbackContext.error("Permission denied");
+            }
+        }
+    }
+
   private void requestPermissions(final CallbackContext callbackContext) {
     
     System.out.println("requestPermissions");
-    
-    if(cordova.hasPermission(POST_NOTIFICATION[0])) {
-      System.out.println("request 1");
-        callbackContext.success();
-    } else {
-      System.out.println("request 2");
-      cordova.requestPermissions(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
-    }
 
-     if(!cordova.hasPermission(POST_NOTIFICATION[0])) {
-      callbackContext.error("Not permission notification");
-      System.out.println("Not permission notification");
-      callbackContext.error("Not permission notification");
-    }
+    this.callbackContext = callbackContext;
+    
+    if (PermissionHelper.hasPermission(this, Manifest.permission.RECEIVE_PUSH_NOTIFICATIONS)) {
+            callbackContext.success();
+        } else {
+            PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
+        }
 
 
     
