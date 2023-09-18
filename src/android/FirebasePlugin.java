@@ -119,6 +119,9 @@ public class FirebasePlugin extends CordovaPlugin {
     } else if (action.equals("subscribe")) {
       this.subscribe(callbackContext, args.getString(0));
       return true;
+    } else if (action.equals("requestPermissions")) {
+      this.requestPermissions(callbackContext);
+      return true;
     } else if (action.equals("unsubscribe")) {
       this.unsubscribe(callbackContext, args.getString(0));
       return true;
@@ -430,6 +433,29 @@ public class FirebasePlugin extends CordovaPlugin {
           FirebaseMessaging.getInstance().subscribeToTopic(topic);
           callbackContext.success();
           Log.d(TAG, "subscribe success");
+        } catch (Exception e) {
+          Crashlytics.logException(e);
+          callbackContext.error(e.getMessage());
+        }
+      }
+    });
+  }
+
+  private void requestPermissions(final CallbackContext callbackContext) {
+    Log.d(TAG, "requestPermission called.");
+    if(android.os.Build.VERSION.SDK_INT > 30) {
+      cordova.requestPermissions(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
+    }
+    if(!cordova.hasPermission(POST_NOTIFICATION[0])) {
+      callbackContext.error("Not permission notification");
+      return;
+    }
+    cordova.getThreadPool().execute(new Runnable() {
+      public void run() {
+        try {
+           
+          callbackContext.success();
+          Log.d(TAG, "request success");
         } catch (Exception e) {
           Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
