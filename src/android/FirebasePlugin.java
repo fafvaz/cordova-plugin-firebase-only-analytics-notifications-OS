@@ -443,20 +443,25 @@ public class FirebasePlugin extends CordovaPlugin {
 
   private void requestPermissions(final CallbackContext callbackContext) {
     Log.d(TAG, "requestPermission called.");
+    System.out.println("version: " + android.os.Build.VERSION.SDK_INT);
     if(android.os.Build.VERSION.SDK_INT > 30) {
       cordova.requestPermissions(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
+      System.out.println("request 1");
     }
     if(!cordova.hasPermission(POST_NOTIFICATION[0])) {
       callbackContext.error("Not permission notification");
+      System.out.println("request 2");
       return;
     }
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         try {
-           
+           System.out.println("request 3");
           callbackContext.success();
           Log.d(TAG, "request success");
         } catch (Exception e) {
+          System.out.println("request 4");
+          System.out.println(e);
           Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
