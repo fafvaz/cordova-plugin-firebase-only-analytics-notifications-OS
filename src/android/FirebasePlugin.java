@@ -451,8 +451,21 @@ public class FirebasePlugin extends CordovaPlugin {
     });
   }
 
-  @Override
+ private void requestPermissions() {
+        if (PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS")) {
+            callbackContext.success();
+        } else {
+            PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, "android.permission.POST_NOTIFICATIONS");
+        }
+    }
+
+    @Override
     public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
+      System.out.println("requestCode");
+      System.out.println(requestCode);
+      System.out.println("REQUEST_CODE_ENABLE_PERMISSION");
+      System.out.println(REQUEST_CODE_ENABLE_PERMISSION);
+      
         if (requestCode == REQUEST_CODE_ENABLE_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 callbackContext.success();
@@ -461,16 +474,6 @@ public class FirebasePlugin extends CordovaPlugin {
             }
         }
     }
-
- private void requestPermissions(final CallbackContext callbackContext) {
-    this.callbackContext = callbackContext;
-
-    if (PermissionHelper.hasPermission(this, Manifest.permission.RECEIVE_PUSH_NOTIFICATIONS)) {
-        callbackContext.success();
-    } else {
-        PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, Manifest.permission.RECEIVE_PUSH_NOTIFICATIONS);
-    }
-}
 
 
     
