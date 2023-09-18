@@ -119,7 +119,7 @@ public class FirebasePlugin extends CordovaPlugin {
     } else if (action.equals("subscribe")) {
       this.subscribe(callbackContext, args.getString(0));
       return true;
-    } else if (action.equals("grantPermission")) {
+    } else if (action.equals("requestPermissions")) {
       this.requestPermissions(callbackContext);
       return true;
     } else if (action.equals("unsubscribe")) {
