@@ -451,13 +451,16 @@ public class FirebasePlugin extends CordovaPlugin {
     });
   }
 
- private void requestPermissions() {
-        if (PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS")) {
-            callbackContext.success();
-        } else {
-            PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, "android.permission.POST_NOTIFICATIONS");
-        }
+ private void requestPermissions(final CallbackContext callbackContext) {
+
+    this.callbackContext = callbackContext;
+   
+    if (PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS")) {
+        callbackContext.success();
+    } else {
+        PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, "android.permission.POST_NOTIFICATIONS");
     }
+ }
 
     @Override
     public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
