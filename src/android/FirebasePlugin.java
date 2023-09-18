@@ -454,10 +454,14 @@ public class FirebasePlugin extends CordovaPlugin {
  private void requestPermissions(final CallbackContext callbackContext) {
 
     this.callbackContext = callbackContext;
+
+  System.out.println("PermissionHelper.hasPermission(this, android.permission.POST_NOTIFICATIONS)");
+  System.out.println(PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS"));
    
     if (PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS")) {
         callbackContext.success();
     } else {
+       System.out.println("pede a permissao: ");
         PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, "android.permission.POST_NOTIFICATIONS");
     }
  }
@@ -468,11 +472,16 @@ public class FirebasePlugin extends CordovaPlugin {
       System.out.println(requestCode);
       System.out.println("REQUEST_CODE_ENABLE_PERMISSION");
       System.out.println(REQUEST_CODE_ENABLE_PERMISSION);
+      System.out.println("grantResults[0]");
+      System.out.println(grantResults[0]);
+      System.out.println("PackageManager.PERMISSION_GRANTED");
+      System.out.println(PackageManager.PERMISSION_GRANTED);
       
         if (requestCode == REQUEST_CODE_ENABLE_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 callbackContext.success();
             } else {
+              System.out.println("Permission denied");
                 callbackContext.error("Permission denied");
             }
         }
