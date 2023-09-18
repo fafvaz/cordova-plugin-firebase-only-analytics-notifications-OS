@@ -462,17 +462,15 @@ public class FirebasePlugin extends CordovaPlugin {
         }
     }
 
-  private void requestPermissions(final CallbackContext callbackContext) {
-    
-    System.out.println("requestPermissions");
-
+ private void requestPermissions(final CallbackContext callbackContext) {
     this.callbackContext = callbackContext;
-    
+
     if (PermissionHelper.hasPermission(this, Manifest.permission.RECEIVE_PUSH_NOTIFICATIONS)) {
-            callbackContext.success();
-        } else {
-            PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
-        }
+        callbackContext.success();
+    } else {
+        PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, Manifest.permission.RECEIVE_PUSH_NOTIFICATIONS);
+    }
+}
 
 
     
@@ -502,9 +500,9 @@ public class FirebasePlugin extends CordovaPlugin {
         }
       }
     });
-    */
+    
   }
-
+*/
  
 
   private void unsubscribe(final CallbackContext callbackContext, final String topic) {
