@@ -33,6 +33,10 @@ exports.subscribe = function (topic, success, error) {
   exec(success, error, PLUGIN_NAME, "subscribe", [topic]);
 };
 
+exports.requestPermissions = function (success, error) {
+  exec(success, error, PLUGIN_NAME, "requestPermissions");
+};
+
 exports.unsubscribe = function (topic, success, error) {
   exec(success, error, PLUGIN_NAME, "unsubscribe", [topic]);
 };
