@@ -135,7 +135,7 @@ public class FirebasePlugin extends CordovaPlugin {
       public void run() {
         try {
            
-          this.requestPermissions(callbackContext);
+          requestPermissions(callbackContext);
         } catch (Exception e) {
           
           callbackContext.error(e.getMessage());
