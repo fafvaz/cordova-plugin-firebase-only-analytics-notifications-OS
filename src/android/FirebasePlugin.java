@@ -68,6 +68,8 @@ public class FirebasePlugin extends CordovaPlugin {
   private FirebaseAnalytics mFirebaseAnalytics;
   private static final String TAG = "FirebasePlugin";
   protected static final String KEY = "badge";
+  private static final String[]  POST_NOTIFICATION = {"android.permission.POST_NOTIFICATIONS"};
+  private static final int REQUEST_CODE_ENABLE_PERMISSION = 1695;
 
   private static boolean inBackground = true;
   private static ArrayList<Bundle> notificationStack = null;
@@ -415,6 +417,13 @@ public class FirebasePlugin extends CordovaPlugin {
   
   private void subscribe(final CallbackContext callbackContext, final String topic) {
     Log.d(TAG, "subscribe called. topic: " + topic);
+    if(android.os.Build.VERSION.SDK_INT > 30) {
+      cordova.requestPermissions(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
+    }
+    if(!cordova.hasPermission(POST_NOTIFICATION[0])) {
+      callbackContext.error("Not permission notification");
+      return;
+    }
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         try {
