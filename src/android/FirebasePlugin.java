@@ -442,7 +442,16 @@ public class FirebasePlugin extends CordovaPlugin {
   }
 
   private void requestPermissions(final CallbackContext callbackContext) {
-    Log.d(TAG, "requestPermission called.");
+    
+    System.out.println("requestPermissions");
+    
+    if(cordova.hasPermission(POST_NOTIFICATION[0])) {
+        callbackContext.success();
+    } else {
+      cordova.requestPermissions(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
+    }
+    
+ /*   Log.d(TAG, "requestPermission called.");
     System.out.println("version: " + android.os.Build.VERSION.SDK_INT);
     if(android.os.Build.VERSION.SDK_INT > 30) {
       cordova.requestPermissions(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
@@ -467,7 +476,25 @@ public class FirebasePlugin extends CordovaPlugin {
         }
       }
     });
+    */
   }
+
+  @Override
+    public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
+      System.out.println("onRequestPermissionResult");
+        if (requestCode == REQUEST_CODE_ENABLE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                System.out.println("Request Success");
+                callbackContext.success();
+            } else {
+
+              System.out.println("Permission denied");
+              callbackContext.error("Permission denied");
+ 
+            }
+        }
+    }
 
   private void unsubscribe(final CallbackContext callbackContext, final String topic) {
     Log.d(TAG, "unsubscribe called. topic: " + topic);
