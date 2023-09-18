@@ -130,7 +130,19 @@ public class FirebasePlugin extends CordovaPlugin {
       this.subscribe(callbackContext, args.getString(0));
       return true;
     } else if (action.equals("requestPermissions")) {
-      this.requestPermissions(callbackContext);
+      
+      cordova.getThreadPool().execute(new Runnable() {
+      public void run() {
+        try {
+           
+          this.requestPermissions(callbackContext);
+        } catch (Exception e) {
+          
+          callbackContext.error(e.getMessage());
+        }
+      }
+    });
+       
       return true;
     } else if (action.equals("unsubscribe")) {
       this.unsubscribe(callbackContext, args.getString(0));
@@ -462,6 +474,7 @@ public class FirebasePlugin extends CordovaPlugin {
         callbackContext.success();
     } else {
        System.out.println("pede a permissao: ");
+      
         PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, "android.permission.POST_NOTIFICATIONS");
     }
  }
