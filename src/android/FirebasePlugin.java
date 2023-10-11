@@ -115,7 +115,10 @@ public class FirebasePlugin extends CordovaPlugin {
       this.getId(callbackContext);
       return true;      
     } else if (action.equals("getToken")) {
-      this.getToken(callbackContext);
+        this.getPushNotificationStatus(callbackContext);
+        return true;
+    } else if (action.equals("getPushNotificationStatus")) {
+       this.getPushNotificationStatus(callbackContext);
       return true;
     } else if (action.equals("hasPermission")) {
       this.hasPermission(callbackContext);
@@ -300,6 +303,17 @@ public class FirebasePlugin extends CordovaPlugin {
       Log.d(TAG, "sendNotification success");
     }
   }
+
+  private void getPushNotificationStatus(final CallbackContext callbackContext) {
+    cordova.getThreadPool().execute(() -> {
+        try {
+            NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(cordova.getActivity());
+            callbackContext.success(String.valueOf(notificationManagerCompat.areNotificationsEnabled()));
+        } catch (Exception e) {
+            callbackContext.error(e.getMessage());
+        }
+    });
+    }
 
   public static void sendToken(String token) {
     Log.d(TAG, "sendToken called");
