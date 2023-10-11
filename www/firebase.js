@@ -9,6 +9,10 @@ exports.getId = function (success, error) {
   exec(success, error, PLUGIN_NAME, "getId", []);
 };
 
+exports.getPushNotificationStatus = function (success, fail) {
+    return exec(success, fail, PLUGIN_NAME, "getPushNotificationStatus", []);
+  };
+
 exports.getToken = function (success, error) {
   exec(success, error, PLUGIN_NAME, "getToken", []);
 };
