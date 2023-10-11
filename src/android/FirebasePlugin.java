@@ -115,7 +115,7 @@ public class FirebasePlugin extends CordovaPlugin {
       this.getId(callbackContext);
       return true;      
     } else if (action.equals("getToken")) {
-        this.getPushNotificationStatus(callbackContext);
+        this.getToken(callbackContext);
         return true;
     } else if (action.equals("getPushNotificationStatus")) {
        this.getPushNotificationStatus(callbackContext);
