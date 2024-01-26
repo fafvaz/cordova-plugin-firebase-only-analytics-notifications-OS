@@ -1,5 +1,5 @@
 android {
-   compileSdkVersion 28 // ou superior
+   compileSdkVersion 30 // ou superior
   defaultConfig {
     multiDexEnabled true
   }
@@ -12,18 +12,26 @@ android {
 buildscript {
   repositories {
     google()
-    jcenter()
-    maven {
-      url 'https://maven.fabric.io/public'
-    }
+     mavenCentral()
   }
   dependencies {
+     classpath 'com.android.tools.build:gradle:4.1.0' 
     classpath 'com.google.gms:google-services:4.3.3'
     classpath 'com.android.tools.build:gradle:3.5.2'
     classpath 'com.google.firebase:firebase-crashlytics-gradle:2.4.1'
   }
 }
 
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
 
 repositories {
   google()
