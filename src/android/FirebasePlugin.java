@@ -9,6 +9,14 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationManagerCompat;
 
+import java.util.UUID; // Para gerar o UUID
+import org.apache.cordova.CallbackContext; // Para trabalhar com o CallbackContext do Cordova
+import org.apache.cordova.CordovaInterface; // Se você estiver usando o CordovaInterface
+import org.apache.cordova.CordovaWebView; // Se você estiver usando o CordovaWebView
+import android.util.Log; // Para logging
+import com.crashlytics.android.Crashlytics; // Se você estiver usando Crashlytics
+
+
 //import android.support.annotation.NonNull;
 //import android.support.v4.app.NotificationManagerCompat;
 import android.text.TextUtils;
@@ -379,36 +387,50 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
 
 
   private void getId(final CallbackContext callbackContext) {
-    Log.d(TAG, "getId called");
+    Log.d(TAG, "getUniqueId called");
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          String id = FirebaseInstanceId.getInstance().getId();
-          callbackContext.success(id);
-          Log.d(TAG, "getId success. id: " + id);
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                // Gerar um UUID único
+                String uniqueID = UUID.randomUUID().toString();
+                callbackContext.success(uniqueID);
+                Log.d(TAG, "getUniqueId success. ID: " + uniqueID);
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
 
   private void getToken(final CallbackContext callbackContext) {
     Log.d(TAG, "getToken called");
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          String token = FirebaseInstanceId.getInstance().getToken();
-          callbackContext.success(token);
-          Log.d(TAG, "getToken success. token: " + token);
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                            callbackContext.error("Fetching FCM registration token failed");
+                            return;
+                        }
+
+                        // Obtenha o token do FCM
+                        String token = task.getResult();
+                        callbackContext.success(token);
+                        Log.d(TAG, "getToken success. token: " + token);
+                    }
+                });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private void hasPermission(final CallbackContext callbackContext) {
     Log.d(TAG, "hasPermission called");
@@ -580,22 +602,47 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
   private void unregister(final CallbackContext callbackContext) {
     Log.d(TAG, "unregister called");
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          FirebaseInstanceId.getInstance().deleteInstanceId();
-          String currentToken = FirebaseInstanceId.getInstance().getToken();
-          if (currentToken != null) {
-            FirebasePlugin.sendToken(currentToken);
-          }
-          callbackContext.success();
-          Log.d(TAG, "unregister success. currentToken: " + currentToken);
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                // Desregistrar o token atual
+                FirebaseMessaging.getInstance().deleteToken()
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            // Verificar se a operação de desregistrar foi bem-sucedida
+                            if (!task.isSuccessful()) {
+                                Log.w(TAG, "Unregistering FCM token failed", task.getException());
+                                callbackContext.error("Unregistering FCM token failed");
+                                return;
+                            }
+
+                            // Solicitar um novo token
+                            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+                                @Override
+                                public void onComplete(@NonNull Task<String> task) {
+                                    if (!task.isSuccessful()) {
+                                        Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                                        callbackContext.error("Fetching FCM registration token failed");
+                                        return;
+                                    }
+
+                                    // Obter o novo token do FCM
+                                    String newToken = task.getResult();
+                                    FirebasePlugin.sendToken(newToken);
+                                    Log.d(TAG, "unregister success. New token: " + newToken);
+                                    callbackContext.success(newToken);
+                                }
+                            });
+                        }
+                    });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private void clearAllNotifications(final CallbackContext callbackContext) {
     Log.d(TAG, "clearAllNotifications called");
