@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationManagerCompat;
+import com.google.android.gms.tasks.OnCompleteListener;
+
 
 import java.util.UUID; // Para gerar o UUID
 import org.apache.cordova.CallbackContext; // Para trabalhar com o CallbackContext do Cordova
@@ -982,18 +984,31 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
   private void activateFetched(final CallbackContext callbackContext) {
     Log.d(TAG, "activateFetched called");
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          final boolean activated = FirebaseRemoteConfig.getInstance().activateFetched();
-          Log.d(TAG, "activateFetched success. activated: " + String.valueOf(activated));
-          callbackContext.success(String.valueOf(activated));
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseRemoteConfig.getInstance().fetchAndActivate()
+                    .addOnCompleteListener(new OnCompleteListener<Boolean>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Boolean> task) {
+                            if (!task.isSuccessful()) {
+                                Log.e(TAG, "fetchAndActivate failed", task.getException());
+                                callbackContext.error(task.getException().getMessage());
+                                return;
+                            }
+
+                            boolean activated = task.getResult();
+                            Log.d(TAG, "fetchAndActivate succeeded, activated: " + activated);
+                            callbackContext.success(String.valueOf(activated));
+                        }
+                    });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private void fetch(CallbackContext callbackContext) {
     Log.d(TAG, "fetch called");
@@ -1090,10 +1105,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         try {
-          boolean devMode = config.getBoolean("developerModeEnabled");
-          FirebaseRemoteConfigSettings.Builder settings = new FirebaseRemoteConfigSettings.Builder()
-              .setDeveloperModeEnabled(devMode);
-          FirebaseRemoteConfig.getInstance().setConfigSettings(settings.build());
+          
           callbackContext.success();
         } catch (Exception e) {
           Crashlytics.logException(e);
