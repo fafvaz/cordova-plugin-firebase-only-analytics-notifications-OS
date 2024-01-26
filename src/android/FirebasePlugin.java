@@ -1049,18 +1049,26 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     cordova.getThreadPool().execute(new Runnable() {
         public void run() {
             try {
-                FirebaseRemoteConfig.getInstance().fetchAndActivate()
+                FirebaseRemoteConfig firebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
+                firebaseRemoteConfig.fetchAndActivate()
                         .addOnCompleteListener(new OnCompleteListener<Boolean>() {
                             @Override
                             public void onComplete(@NonNull Task<Boolean> task) {
                                 if (task.isSuccessful()) {
-                                    byte[] bytes = FirebaseRemoteConfig.getInstance().getByteArray(key);
+                                    try {
+                                        String value = firebaseRemoteConfig.getString(key);
+                                        byte[] bytes = value.getBytes("UTF-8");
 
-                                    JSONObject object = new JSONObject();
-                                    object.put("base64", Base64.encodeToString(bytes, Base64.DEFAULT));
-                                    object.put("array", new JSONArray(bytes));
-                                    callbackContext.success(object);
-                                    Log.d(TAG, "getByteArray success");
+                                        JSONObject object = new JSONObject();
+                                        object.put("base64", Base64.encodeToString(bytes, Base64.DEFAULT));
+                                        object.put("array", new JSONArray(bytes));
+                                        callbackContext.success(object);
+                                        Log.d(TAG, "getByteArray success");
+                                    } catch (Exception e) {
+                                        Crashlytics.logException(e);
+                                        callbackContext.error(e.getMessage());
+                                        Log.e(TAG, "Error in getByteArray", e);
+                                    }
                                 } else {
                                     Exception exception = task.getException();
                                     if (exception != null) {
@@ -1076,10 +1084,12 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             } catch (Exception e) {
                 Crashlytics.logException(e);
                 callbackContext.error(e.getMessage());
+                Log.e(TAG, "Error in getByteArray", e);
             }
         }
     });
 }
+
 
 
   private void getValue(final CallbackContext callbackContext, final String key) {
