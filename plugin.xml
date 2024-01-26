@@ -82,8 +82,7 @@
     <framework src="com.google.firebase:firebase-config:21.0.0" />
     <framework src="com.google.firebase:firebase-perf:20.0.2" />
     <framework src="com.google.firebase:firebase-dynamic-links:20.1.0" />
-    <framework src="com.google.firebase:firebase-iid:18.0.0" />
-  </platform>
+   </platform>
 
   <platform name="ios">
 <!--     <hook type="after_plugin_install" src="scripts/crashlytics/ios/after_plugin_install.js" />
