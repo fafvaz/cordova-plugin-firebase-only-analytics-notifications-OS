@@ -18,7 +18,6 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.analytics.FirebaseAnalytics;
-import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigInfo;
@@ -345,25 +344,39 @@ public class FirebasePlugin extends CordovaPlugin {
     }
   }
 
-  private void onTokenRefresh(final CallbackContext callbackContext) {
+private void onTokenRefresh(final CallbackContext callbackContext) {
     Log.d(TAG, "onTokenRefresh called");
     FirebasePlugin.tokenRefreshCallbackContext = callbackContext;
 
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          String currentToken = FirebaseInstanceId.getInstance().getToken();
-          if (currentToken != null) {
-            FirebasePlugin.sendToken(currentToken);
-            Log.d(TAG, "onTokenRefresh success. token: " + currentToken);
-          }
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                            callbackContext.error("Fetching FCM registration token failed");
+                            return;
+                        }
+
+                        // Obtenha o token do FCM
+                        String currentToken = task.getResult();
+                        // Log e manipule o token conforme necessário
+                        if (currentToken != null) {
+                            FirebasePlugin.sendToken(currentToken);
+                            Log.d(TAG, "onTokenRefresh success. token: " + currentToken);
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private void getId(final CallbackContext callbackContext) {
     Log.d(TAG, "getId called");
