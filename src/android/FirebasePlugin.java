@@ -7,10 +7,10 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.net.Uri;
 import androidx.annotation.NonNull;
-//import androidx.core.app.NotificationManagerCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 //import android.support.annotation.NonNull;
-import android.support.v4.app.NotificationManagerCompat;
+//import android.support.v4.app.NotificationManagerCompat;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
