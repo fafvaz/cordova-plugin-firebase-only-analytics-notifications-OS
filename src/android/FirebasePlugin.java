@@ -1049,7 +1049,8 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         try {
-          byte[] bytes = FirebaseRemoteConfig.getInstance().getByteArray(key);
+          byte[] bytes = FirebaseRemoteConfig.getInstance().getBytes(key);
+
           JSONObject object = new JSONObject();
           object.put("base64", Base64.encodeToString(bytes, Base64.DEFAULT));
           object.put("array", new JSONArray(bytes));
@@ -1086,7 +1087,6 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           JSONObject info = new JSONObject();
 
           JSONObject settings = new JSONObject();
-          settings.put("developerModeEnabled", remoteConfigInfo.getConfigSettings().isDeveloperModeEnabled());
           info.put("configSettings", settings);
 
           info.put("fetchTimeMillis", remoteConfigInfo.getFetchTimeMillis());
@@ -1117,17 +1117,35 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
 
   private void setDefaults(final CallbackContext callbackContext, final JSONObject defaults) {
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          FirebaseRemoteConfig.getInstance().setDefaults(defaultsToMap(defaults));
-          callbackContext.success();
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseRemoteConfig.getInstance().setDefaultsAsync(defaultsToMap(defaults))
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if (task.isSuccessful()) {
+                                    callbackContext.success();
+                                    Log.d(TAG, "setDefaultsAsync succeeded");
+                                } else {
+                                    Exception exception = task.getException();
+                                    if (exception != null) {
+                                        Crashlytics.logException(exception);
+                                        callbackContext.error(exception.getMessage());
+                                    } else {
+                                        callbackContext.error("setDefaultsAsync failed");
+                                    }
+                                    Log.e(TAG, "setDefaultsAsync failed", exception);
+                                }
+                            }
+                        });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private static Map<String, Object> defaultsToMap(JSONObject object) throws JSONException {
     final Map<String, Object> map = new HashMap<String, Object>();
