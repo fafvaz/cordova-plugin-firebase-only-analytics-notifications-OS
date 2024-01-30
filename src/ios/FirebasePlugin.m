@@ -3,7 +3,7 @@
 #import "AppDelegate.h"
 // @import Fabric;
 // @import Crashlytics;
-@import FirebaseInstanceID;
+ 
 @import FirebaseMessaging;
 @import FirebaseAnalytics;
 // @import FirebaseRemoteConfig;
@@ -42,22 +42,15 @@ static FirebasePlugin *firebasePlugin;
 //
 - (void)getId:(CDVInvokedUrlCommand *)command {
   __block CDVPluginResult *pluginResult;
-
-  FIRInstanceIDHandler handler = ^(NSString *_Nullable instID, NSError *_Nullable error) {
-    if (error) {
-      pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
-    } else {
-      pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:instID];
-    }
-
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-  };
-
-  [[FIRInstanceID instanceID] getIDWithHandler:handler];
+ 
+  NSString *fcmToken = [FIRMessaging messaging].FCMToken;
+  pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:fcmToken];
+  [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)getToken:(CDVInvokedUrlCommand *)command {
-    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:[[FIRInstanceID instanceID] token]];
+     NSString *fcmToken = [FIRMessaging messaging].FCMToken;
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:fcmToken];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
