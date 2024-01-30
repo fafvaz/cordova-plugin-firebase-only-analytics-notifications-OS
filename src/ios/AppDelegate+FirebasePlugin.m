@@ -76,7 +76,7 @@
     
     return YES;
 }
-
+/*
 - (void)tokenRefreshNotification:(NSNotification *)notification {
     // Tratar a renovação do token do FCM
     NSString *refreshedToken = [FIRMessaging messaging].FCMToken;
@@ -84,7 +84,7 @@
         NSLog(@"FirebasePlugin - Novo token do FCM: %@", refreshedToken);
         
     }
-}
+}*/
 
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
