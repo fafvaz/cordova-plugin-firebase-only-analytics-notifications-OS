@@ -112,9 +112,17 @@
 <!--     <framework src="Fabric" type="podspec" spec="~> 1.9" />
     <framework src="Crashlytics" type="podspec" spec="~> 3.12" /> -->
    
-
-    <pod name="Firebase/Analytics" spec="~> 10.5" />
-    <pod name="Firebase/Messaging" spec="~> 10.5" />
+       <podspec>
+            <config>
+                <source url="https://cdn.cocoapods.org/"/>
+            </config>
+            <pods use-frameworks="true">
+                <pod name="Firebase/Analytics" spec="~> 10.5" />
+                <pod name="Firebase/Messaging" spec="~> 10.5" />
+            </pods>
+        </podspec>
+    </platform>
+    
     
     <!--
     <framework src="FirebaseMessaging" type="podspec" spec="~> 2.2" />
