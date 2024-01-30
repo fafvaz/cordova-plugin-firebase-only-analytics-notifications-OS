@@ -137,14 +137,13 @@ static FirebasePlugin *firebasePlugin;
 }
 
 - (void)unregister:(CDVInvokedUrlCommand *)command {
-    [[FIRInstanceID instanceID] deleteIDWithHandler:^void(NSError *_Nullable error) {
+    [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError * _Nullable error) {
         if (error) {
-            NSLog(@"FirebasePlugin - Unable to delete instance");
+            NSLog(@"FirebasePlugin - Unable to delete FCM token: %@", error);
+            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         } else {
-            NSString* currentToken = [[FIRInstanceID instanceID] token];
-            if (currentToken != nil) {
-                [self sendToken:currentToken];
-            }
+            NSLog(@"FirebasePlugin - FCM token deleted successfully");
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         }
@@ -164,12 +163,19 @@ static FirebasePlugin *firebasePlugin;
 
 - (void)onTokenRefresh:(CDVInvokedUrlCommand *)command {
     self.tokenRefreshCallbackId = command.callbackId;
-    NSString* currentToken = [[FIRInstanceID instanceID] token];
 
-    if (currentToken != nil) {
-        [self sendToken:currentToken];
-    }
+    // Obter o token atual do FCM
+    [[FIRMessaging messaging] tokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
+        if (error != nil) {
+            NSLog(@"FirebasePlugin - Erro ao obter o token do FCM: %@", error);
+        } else {
+            if (token != nil) {
+                [self sendToken:token];
+            }
+        }
+    }];
 }
+
 
 - (void)sendNotification:(NSDictionary *)userInfo {
     if (self.notificationCallbackId != nil) {
