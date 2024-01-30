@@ -1,5 +1,7 @@
 #import "AppDelegate+FirebasePlugin.h"
 #import "FirebasePlugin.h"
+#import <objc/runtime.h>
+
 @import Firebase;
 @import UserNotifications;
 
@@ -25,7 +27,7 @@
     [FIRApp configure];
 
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(tokenRefreshNotification:)
-                                                 name:kFIRMessagingRegistrationTokenRefreshNotification object:nil];
+                                                 name:FIRMessagingRegistrationTokenRefreshedNotification object:nil];
 
     self.applicationInBackground = @(YES);
     
