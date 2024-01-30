@@ -218,10 +218,8 @@ static FirebasePlugin *firebasePlugin;
 // Analytics
 //
 - (void)setAnalyticsCollectionEnabled:(CDVInvokedUrlCommand *)command {
-     [self.commandDelegate runInBackground:^{
-        BOOL enabled = [[command argumentAtIndex:0] boolValue];
-
-        [[FIRAnalyticsConfiguration sharedInstance] setAnalyticsCollectionEnabled:enabled];
+    BOOL enabled = [[command argumentAtIndex:0] boolValue];
+    [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
      }];
@@ -248,8 +246,12 @@ static FirebasePlugin *firebasePlugin;
 
 - (void)setScreenName:(CDVInvokedUrlCommand *)command {
     NSString* name = [command.arguments objectAtIndex:0];
+    [FIRAnalytics logEventWithName:kFIREventScreenView
+                        parameters:@{kFIRParameterScreenName: name,
+                                     kFIRParameterScreenClass: @"<unknown>"}];
 
-    [FIRAnalytics setScreenName:name screenClass:NULL];
+
+    
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
