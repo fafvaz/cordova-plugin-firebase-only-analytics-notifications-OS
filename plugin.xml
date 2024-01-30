@@ -113,8 +113,8 @@
     <framework src="Crashlytics" type="podspec" spec="~> 3.12" /> -->
    
 
-    <pod name="Firebase/Analytics" spec="~> 4.2" />
-    <pod name="Firebase/Messaging" spec="~> 2.2" />
+    <pod name="Firebase/Analytics" spec="~> 10.5" />
+    <pod name="Firebase/Messaging" spec="~> 10.5" />
     
     <!--
     <framework src="FirebaseMessaging" type="podspec" spec="~> 2.2" />
