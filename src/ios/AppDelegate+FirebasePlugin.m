@@ -10,6 +10,8 @@
 
 @implementation AppDelegate (FirebasePlugin)
 
+@dynamic applicationInBackground;
+
 + (void)load {
     Method original = class_getInstanceMethod(self, @selector(application:didFinishLaunchingWithOptions:));
     Method swizzled = class_getInstanceMethod(self, @selector(application:swizzledDidFinishLaunchingWithOptions:));
@@ -32,6 +34,14 @@
     self.applicationInBackground = @(YES);
     
     return YES;
+}
+
+- (NSNumber *)applicationInBackground {
+    return objc_getAssociatedObject(self, @selector(applicationInBackground));
+}
+
+- (void)setApplicationInBackground:(NSNumber *)applicationInBackground {
+    objc_setAssociatedObject(self, @selector(applicationInBackground), applicationInBackground, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (void)tokenRefreshNotification:(NSNotification *)notification {
