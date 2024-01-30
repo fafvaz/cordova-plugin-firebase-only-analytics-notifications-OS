@@ -222,7 +222,7 @@ static FirebasePlugin *firebasePlugin;
     [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     }];
+      
 }
 
 - (void)logEvent:(CDVInvokedUrlCommand *)command {
