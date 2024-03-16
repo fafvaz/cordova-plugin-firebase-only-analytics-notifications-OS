@@ -60,13 +60,13 @@
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
-    [self handleRemoteNotification:userInfo];
+    [self handleRemoteNotification:userInfo clickOpen:@"false"];
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo
     fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 
-    [self handleRemoteNotification:userInfo];
+    [self handleRemoteNotification:userInfo clickOpen:@"false"];
     completionHandler(UIBackgroundFetchResultNewData);
 }
 
@@ -75,7 +75,7 @@
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
 
     NSDictionary *userInfo = notification.request.content.userInfo;
-    [self handleRemoteNotification:userInfo];
+    [self handleRemoteNotification:userInfo clickOpen:@"true"];
     completionHandler(UNNotificationPresentationOptionAlert);
 }
 
@@ -84,29 +84,40 @@
           withCompletionHandler:(void (^)(void))completionHandler {
 
     NSDictionary *userInfo = response.notification.request.content.userInfo;
-    [self handleRemoteNotification:userInfo];
+    [self handleRemoteNotification:userInfo clickOpen:@"true"];
     completionHandler();
 }
 
-- (void)handleRemoteNotification:(NSDictionary *)userInfo {
+- (void)handleRemoteNotification:(NSDictionary *)userInfo clickOpen:(NSString *) clickOpen {
     NSLog(@"FirebasePlugin - Received remote notification: %@", userInfo);
 
     
     BOOL isInBackground = [self.applicationInBackground boolValue];
 
     if (isInBackground) {
-      
         NSLog(@"FirebasePlugin - App in background, received remote notification");
     } else {
-       
         NSLog(@"FirebasePlugin - App in foreground, received remote notification");
     }
- 
-    NSString *message = userInfo[@"aps"][@"alert"];
+    
+    NSNotificationCenter *nc = NSNotificationCenter.defaultCenter;
+
+    if([clickOpen  isEqual: @"true"]) {
+        [nc postNotificationName:@"FirebaseRemoteNotificationClickedDispatch" object:userInfo];
+    } else {
+        [nc postNotificationName:@"FirebaseRemoteNotificationReceivedDispatch" object:userInfo];
+    }
+
+    NSDictionary *message = userInfo[@"aps"][@"alert"];
     if (message) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"New Notification" 
-                                                                           message:message 
+            
+            NSString *title = message[@"title"];
+            NSString *body = message[@"body"];
+            
+            
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle: title
+                                                                           message:body
                                                                     preferredStyle:UIAlertControllerStyleAlert];
             UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" 
                                                                style:UIAlertActionStyleDefault 
