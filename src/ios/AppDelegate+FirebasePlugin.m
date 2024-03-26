@@ -75,7 +75,7 @@
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
 
     NSDictionary *userInfo = notification.request.content.userInfo;
-    [self handleRemoteNotification:userInfo clickOpen:@"true"];
+    [self handleRemoteNotification:userInfo clickOpen:@"false"];
     completionHandler(UNNotificationPresentationOptionAlert);
 }
 
