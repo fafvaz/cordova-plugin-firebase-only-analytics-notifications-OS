@@ -46,8 +46,8 @@
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="http" android:host="$APP_DOMAIN" android:pathPrefix="$APP_PATH"/>
-        <data android:scheme="https" android:host="$APP_DOMAIN" android:pathPrefix="$APP_PATH"/>
+        <!-- <data android:scheme="http" android:host="$APP_DOMAIN" android:pathPrefix="$APP_PATH"/>
+        <data android:scheme="https" android:host="$APP_DOMAIN" android:pathPrefix="$APP_PATH"/> !--> 
       </intent-filter>
     </config-file>
     <config-file target="AndroidManifest.xml" parent="/manifest/application">
