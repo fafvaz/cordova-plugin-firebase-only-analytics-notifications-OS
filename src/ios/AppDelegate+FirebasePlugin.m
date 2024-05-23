@@ -107,25 +107,6 @@
     } else {
         [nc postNotificationName:@"FirebaseRemoteNotificationReceivedDispatch" object:userInfo];
     }
-
-    NSDictionary *message = userInfo[@"aps"][@"alert"];
-    if (message) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            
-            NSString *title = message[@"title"];
-            NSString *body = message[@"body"];
-            
-            
-            UIAlertController *alert = [UIAlertController alertControllerWithTitle: title
-                                                                           message:body
-                                                                    preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" 
-                                                               style:UIAlertActionStyleDefault 
-                                                             handler:nil];
-            [alert addAction:okAction];
-            [self.window.rootViewController presentViewController:alert animated:YES completion:nil];
-        });
-    }
  
     [FirebasePlugin.firebasePlugin sendNotification:userInfo];
 }
