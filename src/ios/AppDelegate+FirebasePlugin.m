@@ -75,7 +75,7 @@
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
 
     NSDictionary *userInfo = notification.request.content.userInfo;
-    [self handleRemoteNotification:userInfo clickOpen:@"false"];
+    [self handleRemoteNotification:userInfo clickOpen:@"true"];
     completionHandler(UNNotificationPresentationOptionAlert);
 }
 
@@ -100,12 +100,16 @@
         NSLog(@"FirebasePlugin - App in foreground, received remote notification");
     }
     
+    
+    NSMutableDictionary *userInfoMutable = [userInfo mutableCopy];
+    [userInfoMutable setValue:(isInBackground ? @"true": @"false") forKey:@"background"];
+    
     NSNotificationCenter *nc = NSNotificationCenter.defaultCenter;
 
     if([clickOpen  isEqual: @"true"]) {
-        [nc postNotificationName:@"FirebaseRemoteNotificationClickedDispatch" object:userInfo];
+        [nc postNotificationName:@"FirebaseRemoteNotificationClickedDispatch" object:userInfoMutable];
     } else {
-        [nc postNotificationName:@"FirebaseRemoteNotificationReceivedDispatch" object:userInfo];
+        [nc postNotificationName:@"FirebaseRemoteNotificationReceivedDispatch" object:userInfoMutable];
     }
  
     [FirebasePlugin.firebasePlugin sendNotification:userInfo];
