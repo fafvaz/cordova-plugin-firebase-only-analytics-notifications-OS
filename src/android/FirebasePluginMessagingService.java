@@ -120,6 +120,15 @@ public class FirebasePluginMessagingService extends FirebaseMessagingService {
       id = Integer.toString(n);
     }
 
+    Log.d(TAG, "start print data");
+    data.forEach(
+            (key, value) -> {
+              Log.d(TAG, "Notification key: " + key + " value: " + value);
+            }
+    );
+    Log.d(TAG, "end print data");
+
+
     String badge = data.get("badge");
 
     Log.d(TAG, "From: " + remoteMessage.getFrom());
