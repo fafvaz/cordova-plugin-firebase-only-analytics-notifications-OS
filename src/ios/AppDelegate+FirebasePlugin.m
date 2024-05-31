@@ -102,7 +102,7 @@
     
     
     NSMutableDictionary *userInfoMutable = [userInfo mutableCopy];
-    [userInfoMutable setValue:(isInBackground ? @"true": @"false") forKey:@"background"];
+    [userInfoMutable setValue:(clickOpen ? @"true": @"false") forKey:@"FromPushNotification"];
     
     NSNotificationCenter *nc = NSNotificationCenter.defaultCenter;
 
