@@ -9,6 +9,10 @@ exports.getId = function (success, error) {
   exec(success, error, PLUGIN_NAME, "getId", []);
 };
 
+exports.getPushNotificationStatus = function (success, fail) {
+    return exec(success, fail, PLUGIN_NAME, "getPushNotificationStatus", []);
+  };
+
 exports.getToken = function (success, error) {
   exec(success, error, PLUGIN_NAME, "getToken", []);
 };
@@ -31,6 +35,10 @@ exports.getBadgeNumber = function (success, error) {
 
 exports.subscribe = function (topic, success, error) {
   exec(success, error, PLUGIN_NAME, "subscribe", [topic]);
+};
+
+exports.requestPermissions = function (success, error) {
+  exec(success, error, PLUGIN_NAME, "requestPermissions", []);
 };
 
 exports.unsubscribe = function (topic, success, error) {

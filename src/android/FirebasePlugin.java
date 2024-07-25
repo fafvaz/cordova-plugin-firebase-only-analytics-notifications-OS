@@ -6,10 +6,21 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.net.Uri;
-//import androidx.annotation.NonNull;
-//import androidx.core.app.NotificationManagerCompat;
-import android.support.annotation.NonNull;
-import android.support.v4.app.NotificationManagerCompat;
+import androidx.annotation.NonNull;
+import androidx.core.app.NotificationManagerCompat;
+import com.google.android.gms.tasks.OnCompleteListener;
+
+
+import java.util.UUID; // Para gerar o UUID
+import org.apache.cordova.CallbackContext; // Para trabalhar com o CallbackContext do Cordova
+import org.apache.cordova.CordovaInterface; // Se você estiver usando o CordovaInterface
+import org.apache.cordova.CordovaWebView; // Se você estiver usando o CordovaWebView
+import android.util.Log; // Para logging
+import com.crashlytics.android.Crashlytics; // Se você estiver usando Crashlytics
+
+
+//import android.support.annotation.NonNull;
+//import android.support.v4.app.NotificationManagerCompat;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
@@ -17,7 +28,6 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.analytics.FirebaseAnalytics;
-import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigInfo;
@@ -32,6 +42,14 @@ import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.PermissionHelper;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -68,12 +86,16 @@ public class FirebasePlugin extends CordovaPlugin {
   private FirebaseAnalytics mFirebaseAnalytics;
   private static final String TAG = "FirebasePlugin";
   protected static final String KEY = "badge";
+  private static final String[]  POST_NOTIFICATION = {"android.permission.POST_NOTIFICATIONS"};
+  private static final int REQUEST_CODE_ENABLE_PERMISSION = 1695;
 
   private static boolean inBackground = true;
   private static ArrayList<Bundle> notificationStack = null;
   private static CallbackContext notificationCallbackContext;
   private static CallbackContext tokenRefreshCallbackContext;
   private static CallbackContext dynamicLinkCallback;
+  private CallbackContext callbackContext;
+  
 
   @Override
   protected void pluginInitialize() {
@@ -103,7 +125,10 @@ public class FirebasePlugin extends CordovaPlugin {
       this.getId(callbackContext);
       return true;      
     } else if (action.equals("getToken")) {
-      this.getToken(callbackContext);
+        this.getToken(callbackContext);
+        return true;
+    } else if (action.equals("getPushNotificationStatus")) {
+       this.getPushNotificationStatus(callbackContext);
       return true;
     } else if (action.equals("hasPermission")) {
       this.hasPermission(callbackContext);
@@ -116,6 +141,21 @@ public class FirebasePlugin extends CordovaPlugin {
       return true;
     } else if (action.equals("subscribe")) {
       this.subscribe(callbackContext, args.getString(0));
+      return true;
+    } else if (action.equals("requestPermissions")) {
+      
+      cordova.getThreadPool().execute(new Runnable() {
+      public void run() {
+        try {
+           
+          requestPermissions(callbackContext);
+        } catch (Exception e) {
+          
+          callbackContext.error(e.getMessage());
+        }
+      }
+    });
+       
       return true;
     } else if (action.equals("unsubscribe")) {
       this.unsubscribe(callbackContext, args.getString(0));
@@ -274,6 +314,17 @@ public class FirebasePlugin extends CordovaPlugin {
     }
   }
 
+  private void getPushNotificationStatus(final CallbackContext callbackContext) {
+    cordova.getThreadPool().execute(() -> {
+        try {
+            NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(cordova.getActivity());
+            callbackContext.success(String.valueOf(notificationManagerCompat.areNotificationsEnabled()));
+        } catch (Exception e) {
+            callbackContext.error(e.getMessage());
+        }
+    });
+    }
+
   public static void sendToken(String token) {
     Log.d(TAG, "sendToken called");
     if (FirebasePlugin.tokenRefreshCallbackContext == null) {
@@ -303,57 +354,85 @@ public class FirebasePlugin extends CordovaPlugin {
     }
   }
 
-  private void onTokenRefresh(final CallbackContext callbackContext) {
+private void onTokenRefresh(final CallbackContext callbackContext) {
     Log.d(TAG, "onTokenRefresh called");
     FirebasePlugin.tokenRefreshCallbackContext = callbackContext;
 
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          String currentToken = FirebaseInstanceId.getInstance().getToken();
-          if (currentToken != null) {
-            FirebasePlugin.sendToken(currentToken);
-            Log.d(TAG, "onTokenRefresh success. token: " + currentToken);
-          }
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                            callbackContext.error("Fetching FCM registration token failed");
+                            return;
+                        }
+
+                        // Obtenha o token do FCM
+                        String currentToken = task.getResult();
+                        // Log e manipule o token conforme necessário
+                        if (currentToken != null) {
+                            FirebasePlugin.sendToken(currentToken);
+                            Log.d(TAG, "onTokenRefresh success. token: " + currentToken);
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private void getId(final CallbackContext callbackContext) {
-    Log.d(TAG, "getId called");
+    Log.d(TAG, "getUniqueId called");
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          String id = FirebaseInstanceId.getInstance().getId();
-          callbackContext.success(id);
-          Log.d(TAG, "getId success. id: " + id);
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                // Gerar um UUID único
+                String uniqueID = UUID.randomUUID().toString();
+                callbackContext.success(uniqueID);
+                Log.d(TAG, "getUniqueId success. ID: " + uniqueID);
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
 
   private void getToken(final CallbackContext callbackContext) {
     Log.d(TAG, "getToken called");
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          String token = FirebaseInstanceId.getInstance().getToken();
-          callbackContext.success(token);
-          Log.d(TAG, "getToken success. token: " + token);
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                            callbackContext.error("Fetching FCM registration token failed");
+                            return;
+                        }
+
+                        // Obtenha o token do FCM
+                        String token = task.getResult();
+                        callbackContext.success(token);
+                        Log.d(TAG, "getToken success. token: " + token);
+                    }
+                });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private void hasPermission(final CallbackContext callbackContext) {
     Log.d(TAG, "hasPermission called");
@@ -415,6 +494,13 @@ public class FirebasePlugin extends CordovaPlugin {
   
   private void subscribe(final CallbackContext callbackContext, final String topic) {
     Log.d(TAG, "subscribe called. topic: " + topic);
+    if(android.os.Build.VERSION.SDK_INT > 30) {
+      cordova.requestPermissions(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
+    }
+    if(!cordova.hasPermission(POST_NOTIFICATION[0])) {
+      callbackContext.error("Not permission notification");
+      return;
+    }
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         try {
@@ -428,6 +514,76 @@ public class FirebasePlugin extends CordovaPlugin {
       }
     });
   }
+
+ private void requestPermissions(final CallbackContext callbackContext) {
+
+    this.callbackContext = callbackContext;
+
+  System.out.println("PermissionHelper.hasPermission(this, android.permission.POST_NOTIFICATIONS)");
+  System.out.println(PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS"));
+   
+    if (PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS")) {
+        callbackContext.success();
+    } else {
+       System.out.println("pede a permissao: ");
+      
+        PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, "android.permission.POST_NOTIFICATIONS");
+    }
+ }
+
+    @Override
+    public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
+      System.out.println("requestCode");
+      System.out.println(requestCode);
+      System.out.println("REQUEST_CODE_ENABLE_PERMISSION");
+      System.out.println(REQUEST_CODE_ENABLE_PERMISSION);
+      System.out.println("grantResults[0]");
+      System.out.println(grantResults[0]);
+      System.out.println("PackageManager.PERMISSION_GRANTED");
+      System.out.println(PackageManager.PERMISSION_GRANTED);
+      
+        if (requestCode == REQUEST_CODE_ENABLE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                callbackContext.success();
+            } else {
+              System.out.println("Permission denied");
+                callbackContext.error("Permission denied");
+            }
+        }
+    }
+
+
+    
+    
+ /*   Log.d(TAG, "requestPermission called.");
+    System.out.println("version: " + android.os.Build.VERSION.SDK_INT);
+    if(android.os.Build.VERSION.SDK_INT > 30) {
+      cordova.requestPermissions(this, REQUEST_CODE_ENABLE_PERMISSION, POST_NOTIFICATION);
+      System.out.println("request 1");
+    }
+    if(!cordova.hasPermission(POST_NOTIFICATION[0])) {
+      callbackContext.error("Not permission notification");
+      System.out.println("request 2");
+      return;
+    }
+    cordova.getThreadPool().execute(new Runnable() {
+      public void run() {
+        try {
+           System.out.println("request 3");
+          callbackContext.success();
+          Log.d(TAG, "request success");
+        } catch (Exception e) {
+          System.out.println("request 4");
+          System.out.println(e);
+          Crashlytics.logException(e);
+          callbackContext.error(e.getMessage());
+        }
+      }
+    });
+    
+  }
+*/
+ 
 
   private void unsubscribe(final CallbackContext callbackContext, final String topic) {
     Log.d(TAG, "unsubscribe called. topic: " + topic);
@@ -448,22 +604,47 @@ public class FirebasePlugin extends CordovaPlugin {
   private void unregister(final CallbackContext callbackContext) {
     Log.d(TAG, "unregister called");
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          FirebaseInstanceId.getInstance().deleteInstanceId();
-          String currentToken = FirebaseInstanceId.getInstance().getToken();
-          if (currentToken != null) {
-            FirebasePlugin.sendToken(currentToken);
-          }
-          callbackContext.success();
-          Log.d(TAG, "unregister success. currentToken: " + currentToken);
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                // Desregistrar o token atual
+                FirebaseMessaging.getInstance().deleteToken()
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            // Verificar se a operação de desregistrar foi bem-sucedida
+                            if (!task.isSuccessful()) {
+                                Log.w(TAG, "Unregistering FCM token failed", task.getException());
+                                callbackContext.error("Unregistering FCM token failed");
+                                return;
+                            }
+
+                            // Solicitar um novo token
+                            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+                                @Override
+                                public void onComplete(@NonNull Task<String> task) {
+                                    if (!task.isSuccessful()) {
+                                        Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                                        callbackContext.error("Fetching FCM registration token failed");
+                                        return;
+                                    }
+
+                                    // Obter o novo token do FCM
+                                    String newToken = task.getResult();
+                                    FirebasePlugin.sendToken(newToken);
+                                    Log.d(TAG, "unregister success. New token: " + newToken);
+                                    callbackContext.success(newToken);
+                                }
+                            });
+                        }
+                    });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private void clearAllNotifications(final CallbackContext callbackContext) {
     Log.d(TAG, "clearAllNotifications called");
@@ -803,18 +984,31 @@ public class FirebasePlugin extends CordovaPlugin {
   private void activateFetched(final CallbackContext callbackContext) {
     Log.d(TAG, "activateFetched called");
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          final boolean activated = FirebaseRemoteConfig.getInstance().activateFetched();
-          Log.d(TAG, "activateFetched success. activated: " + String.valueOf(activated));
-          callbackContext.success(String.valueOf(activated));
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseRemoteConfig.getInstance().fetchAndActivate()
+                    .addOnCompleteListener(new OnCompleteListener<Boolean>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Boolean> task) {
+                            if (!task.isSuccessful()) {
+                                Log.e(TAG, "fetchAndActivate failed", task.getException());
+                                callbackContext.error(task.getException().getMessage());
+                                return;
+                            }
+
+                            boolean activated = task.getResult();
+                            Log.d(TAG, "fetchAndActivate succeeded, activated: " + activated);
+                            callbackContext.success(String.valueOf(activated));
+                        }
+                    });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private void fetch(CallbackContext callbackContext) {
     Log.d(TAG, "fetch called");
@@ -853,20 +1047,50 @@ public class FirebasePlugin extends CordovaPlugin {
 
   private void getByteArray(final CallbackContext callbackContext, final String key) {
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          byte[] bytes = FirebaseRemoteConfig.getInstance().getByteArray(key);
-          JSONObject object = new JSONObject();
-          object.put("base64", Base64.encodeToString(bytes, Base64.DEFAULT));
-          object.put("array", new JSONArray(bytes));
-          callbackContext.success(object);
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseRemoteConfig firebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
+                firebaseRemoteConfig.fetchAndActivate()
+                        .addOnCompleteListener(new OnCompleteListener<Boolean>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Boolean> task) {
+                                if (task.isSuccessful()) {
+                                    try {
+                                        String value = firebaseRemoteConfig.getString(key);
+                                        byte[] bytes = value.getBytes("UTF-8");
+
+                                        JSONObject object = new JSONObject();
+                                        object.put("base64", Base64.encodeToString(bytes, Base64.DEFAULT));
+                                        object.put("array", new JSONArray(bytes));
+                                        callbackContext.success(object);
+                                        Log.d(TAG, "getByteArray success");
+                                    } catch (Exception e) {
+                                        Crashlytics.logException(e);
+                                        callbackContext.error(e.getMessage());
+                                        Log.e(TAG, "Error in getByteArray", e);
+                                    }
+                                } else {
+                                    Exception exception = task.getException();
+                                    if (exception != null) {
+                                        Crashlytics.logException(exception);
+                                        callbackContext.error(exception.getMessage());
+                                    } else {
+                                        callbackContext.error("getByteArray failed");
+                                    }
+                                    Log.e(TAG, "getByteArray failed", exception);
+                                }
+                            }
+                        });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+                Log.e(TAG, "Error in getByteArray", e);
+            }
         }
-      }
     });
-  }
+}
+
+
 
   private void getValue(final CallbackContext callbackContext, final String key) {
     Log.d(TAG, "getValue called. key: " + key);
@@ -892,7 +1116,6 @@ public class FirebasePlugin extends CordovaPlugin {
           JSONObject info = new JSONObject();
 
           JSONObject settings = new JSONObject();
-          settings.put("developerModeEnabled", remoteConfigInfo.getConfigSettings().isDeveloperModeEnabled());
           info.put("configSettings", settings);
 
           info.put("fetchTimeMillis", remoteConfigInfo.getFetchTimeMillis());
@@ -911,10 +1134,7 @@ public class FirebasePlugin extends CordovaPlugin {
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         try {
-          boolean devMode = config.getBoolean("developerModeEnabled");
-          FirebaseRemoteConfigSettings.Builder settings = new FirebaseRemoteConfigSettings.Builder()
-              .setDeveloperModeEnabled(devMode);
-          FirebaseRemoteConfig.getInstance().setConfigSettings(settings.build());
+          
           callbackContext.success();
         } catch (Exception e) {
           Crashlytics.logException(e);
@@ -926,17 +1146,35 @@ public class FirebasePlugin extends CordovaPlugin {
 
   private void setDefaults(final CallbackContext callbackContext, final JSONObject defaults) {
     cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          FirebaseRemoteConfig.getInstance().setDefaults(defaultsToMap(defaults));
-          callbackContext.success();
-        } catch (Exception e) {
-          Crashlytics.logException(e);
-          callbackContext.error(e.getMessage());
+        public void run() {
+            try {
+                FirebaseRemoteConfig.getInstance().setDefaultsAsync(defaultsToMap(defaults))
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if (task.isSuccessful()) {
+                                    callbackContext.success();
+                                    Log.d(TAG, "setDefaultsAsync succeeded");
+                                } else {
+                                    Exception exception = task.getException();
+                                    if (exception != null) {
+                                        Crashlytics.logException(exception);
+                                        callbackContext.error(exception.getMessage());
+                                    } else {
+                                        callbackContext.error("setDefaultsAsync failed");
+                                    }
+                                    Log.e(TAG, "setDefaultsAsync failed", exception);
+                                }
+                            }
+                        });
+            } catch (Exception e) {
+                Crashlytics.logException(e);
+                callbackContext.error(e.getMessage());
+            }
         }
-      }
     });
-  }
+}
+
 
   private static Map<String, Object> defaultsToMap(JSONObject object) throws JSONException {
     final Map<String, Object> map = new HashMap<String, Object>();
