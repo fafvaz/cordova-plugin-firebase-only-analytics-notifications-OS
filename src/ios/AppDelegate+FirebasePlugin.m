@@ -55,8 +55,25 @@
     self.applicationInBackground = @(YES);
 }
 
+/*
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
     [FIRMessaging messaging].APNSToken = deviceToken;
+}
+*/
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    [FIRMessaging messaging].APNSToken = deviceToken;
+    [[FIRMessaging messaging] tokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
+        if (error) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"capacitorDidFailToRegisterForRemoteNotifications" object:error];
+        } else if (token) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"capacitorDidRegisterForRemoteNotifications" object:token];
+        }
+    }];
+}
+
+- (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"capacitorDidFailToRegisterForRemoteNotifications" object:error];
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
