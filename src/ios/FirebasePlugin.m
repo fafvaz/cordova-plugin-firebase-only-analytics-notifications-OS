@@ -121,6 +121,13 @@ static FirebasePlugin *firebasePlugin;
     [self _logError:[NSString stringWithFormat:@"EXCEPTION: %@", exception.reason]];
 }
 
+- (void)_logError: (NSString*)msg
+{
+    NSLog(@"%@ ERROR: %@", LOG_TAG, msg);
+    NSString* jsString = [NSString stringWithFormat:@"console.error(\"%@: %@\")", LOG_TAG, [self escapeJavascriptString:msg]];
+    [self executeGlobalJavascript:jsString];
+}
+
 /* NEW */
 
 - (void)hasPermission:(CDVInvokedUrlCommand *)command {
