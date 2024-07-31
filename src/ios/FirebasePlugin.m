@@ -47,11 +47,32 @@ static FirebasePlugin *firebasePlugin;
   pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:fcmToken];
   [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
-
+/*
 - (void)getToken:(CDVInvokedUrlCommand *)command {
      NSString *fcmToken = [FIRMessaging messaging].FCMToken;
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:fcmToken];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+*/
+
+- (void)getToken:(CDVInvokedUrlCommand *)command {
+    [self _getToken:^(NSString *token, NSError *error) {
+        [self handleStringResultWithPotentialError:error command:command result:token];
+    }];
+}
+
+-(void)_getToken:(void (^)(NSString *token, NSError *error))completeBlock {
+    @try {
+        [[FIRMessaging messaging] tokenWithCompletion:^(NSString *token, NSError *error) {
+            @try {
+                completeBlock(token, error);
+            }@catch (NSException *exception) {
+                [self handlePluginExceptionWithoutContext:exception];
+            }
+        }];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithoutContext:exception];
+    }
 }
 
 - (void)hasPermission:(CDVInvokedUrlCommand *)command {
