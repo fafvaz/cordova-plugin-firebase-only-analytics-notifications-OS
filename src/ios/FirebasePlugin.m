@@ -94,6 +94,28 @@ static FirebasePlugin *firebasePlugin;
         [self handlePluginExceptionWithoutContext:exception];
     }
 }
+
+- (void) handleStringResultWithPotentialError:(NSError*) error command:(CDVInvokedUrlCommand*)command result:(NSString*)result {
+     if (error) {
+         [self sendPluginErrorWithError:error command:command];
+     }else{
+         [self sendPluginStringResult:result command:command callbackId:command.callbackId];
+     }
+}
+
+- (void) handlePluginExceptionWithContext: (NSException*) exception :(CDVInvokedUrlCommand*)command
+{
+    [self handlePluginExceptionWithoutContext:exception];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:exception.reason];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+- (void) sendPluginStringResultAndKeepCallback:(NSString*)result command:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:result];
+    [pluginResult setKeepCallbackAsBool:YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+}
+
 /* NEW */
 
 - (void)hasPermission:(CDVInvokedUrlCommand *)command {
