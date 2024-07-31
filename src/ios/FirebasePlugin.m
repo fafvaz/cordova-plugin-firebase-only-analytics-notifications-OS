@@ -62,6 +62,18 @@ static FirebasePlugin *firebasePlugin;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 */
+/* NEW */
+- (void)sendApnsToken:(NSString *)token {
+    @try {
+        if (self.apnsTokenRefreshCallbackId != nil) {
+            [self sendPluginStringResultAndKeepCallback:token command:self.commandDelegate callbackId:self.apnsTokenRefreshCallbackId];
+        }
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :self.commandDelegate];
+    }
+}
+
+
 
 - (void)getToken:(CDVInvokedUrlCommand *)command {
     [self _getToken:^(NSString *token, NSError *error) {
@@ -82,6 +94,7 @@ static FirebasePlugin *firebasePlugin;
         [self handlePluginExceptionWithoutContext:exception];
     }
 }
+/* NEW */
 
 - (void)hasPermission:(CDVInvokedUrlCommand *)command {
     BOOL enabled = NO;
