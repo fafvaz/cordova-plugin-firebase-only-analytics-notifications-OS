@@ -88,8 +88,7 @@
 <!--     <hook type="after_plugin_install" src="scripts/crashlytics/ios/after_plugin_install.js" />
     <hook type="before_plugin_uninstall" src="scripts/crashlytics/ios/before_plugin_uninstall.js" /> -->
     <hook type="before_plugin_install" src="scripts/configurations/unzipAndCopySound.js" />
-    <preference name="FIREBASE_MESSAGING_AUTO_INIT_ENABLED" value="true" />
-
+    
     <config-file parent="/*" target="config.xml">
       <feature name="FirebasePlugin">
         <param name="ios-package" value="FirebasePlugin" />
