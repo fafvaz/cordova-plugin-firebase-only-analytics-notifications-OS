@@ -17,6 +17,7 @@
 - (void)sendNotification:(NSDictionary *)userInfo;
 - (void)sendToken:(NSString *)token;
 - (void)logEvent:(CDVInvokedUrlCommand *)command;
+- (void) _logMessage: (NSString*)msg;
 // - (void)logError:(CDVInvokedUrlCommand *)command;
 // - (void)setCrashlyticsUserId:(CDVInvokedUrlCommand*)command;
 - (void)setScreenName:(CDVInvokedUrlCommand *)command;
