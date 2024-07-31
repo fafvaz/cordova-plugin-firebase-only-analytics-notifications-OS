@@ -116,6 +116,11 @@ static FirebasePlugin *firebasePlugin;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
 }
 
+- (void) handlePluginExceptionWithoutContext: (NSException*) exception
+{
+    [self _logError:[NSString stringWithFormat:@"EXCEPTION: %@", exception.reason]];
+}
+
 /* NEW */
 
 - (void)hasPermission:(CDVInvokedUrlCommand *)command {
