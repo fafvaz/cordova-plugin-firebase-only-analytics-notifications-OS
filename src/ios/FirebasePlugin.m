@@ -47,6 +47,14 @@ static FirebasePlugin *firebasePlugin;
   pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:fcmToken];
   [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
+
+- (void)_logMessage: (NSString*)msg
+{
+    NSLog(@"%@ LOG: %@", LOG_TAG, msg);
+    NSString* jsString = [NSString stringWithFormat:@"console.log(\"%@: %@\")", LOG_TAG, [self escapeJavascriptString:msg]];
+    [self executeGlobalJavascript:jsString];
+}
+
 /*
 - (void)getToken:(CDVInvokedUrlCommand *)command {
      NSString *fcmToken = [FIRMessaging messaging].FCMToken;
