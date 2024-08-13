@@ -12,9 +12,9 @@ import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
-//import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationCompat;
 //import androidx.core.app.NotificationManagerCompat;
-import android.support.v4.app.NotificationCompat;
+//import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.app.Notification;
 import android.text.TextUtils;
@@ -119,6 +119,15 @@ public class FirebasePluginMessagingService extends FirebaseMessagingService {
       int n = rand.nextInt(50) + 1;
       id = Integer.toString(n);
     }
+
+    Log.d(TAG, "start print data");
+    data.forEach(
+            (key, value) -> {
+              Log.d(TAG, "Notification key: " + key + " value: " + value);
+            }
+    );
+    Log.d(TAG, "end print data");
+
 
     String badge = data.get("badge");
 

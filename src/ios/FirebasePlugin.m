@@ -3,7 +3,7 @@
 #import "AppDelegate.h"
 // @import Fabric;
 // @import Crashlytics;
-@import FirebaseInstanceID;
+ 
 @import FirebaseMessaging;
 @import FirebaseAnalytics;
 // @import FirebaseRemoteConfig;
@@ -42,22 +42,15 @@ static FirebasePlugin *firebasePlugin;
 //
 - (void)getId:(CDVInvokedUrlCommand *)command {
   __block CDVPluginResult *pluginResult;
-
-  FIRInstanceIDHandler handler = ^(NSString *_Nullable instID, NSError *_Nullable error) {
-    if (error) {
-      pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
-    } else {
-      pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:instID];
-    }
-
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-  };
-
-  [[FIRInstanceID instanceID] getIDWithHandler:handler];
+ 
+  NSString *fcmToken = [FIRMessaging messaging].FCMToken;
+  pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:fcmToken];
+  [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)getToken:(CDVInvokedUrlCommand *)command {
-    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:[[FIRInstanceID instanceID] token]];
+     NSString *fcmToken = [FIRMessaging messaging].FCMToken;
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:fcmToken];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
@@ -144,14 +137,13 @@ static FirebasePlugin *firebasePlugin;
 }
 
 - (void)unregister:(CDVInvokedUrlCommand *)command {
-    [[FIRInstanceID instanceID] deleteIDWithHandler:^void(NSError *_Nullable error) {
+    [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError * _Nullable error) {
         if (error) {
-            NSLog(@"FirebasePlugin - Unable to delete instance");
+            NSLog(@"FirebasePlugin - Unable to delete FCM token: %@", error);
+            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         } else {
-            NSString* currentToken = [[FIRInstanceID instanceID] token];
-            if (currentToken != nil) {
-                [self sendToken:currentToken];
-            }
+            NSLog(@"FirebasePlugin - FCM token deleted successfully");
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         }
@@ -171,12 +163,19 @@ static FirebasePlugin *firebasePlugin;
 
 - (void)onTokenRefresh:(CDVInvokedUrlCommand *)command {
     self.tokenRefreshCallbackId = command.callbackId;
-    NSString* currentToken = [[FIRInstanceID instanceID] token];
 
-    if (currentToken != nil) {
-        [self sendToken:currentToken];
-    }
+    // Obter o token atual do FCM
+    [[FIRMessaging messaging] tokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
+        if (error != nil) {
+            NSLog(@"FirebasePlugin - Erro ao obter o token do FCM: %@", error);
+        } else {
+            if (token != nil) {
+                [self sendToken:token];
+            }
+        }
+    }];
 }
+
 
 - (void)sendNotification:(NSDictionary *)userInfo {
     if (self.notificationCallbackId != nil) {
@@ -219,13 +218,11 @@ static FirebasePlugin *firebasePlugin;
 // Analytics
 //
 - (void)setAnalyticsCollectionEnabled:(CDVInvokedUrlCommand *)command {
-     [self.commandDelegate runInBackground:^{
-        BOOL enabled = [[command argumentAtIndex:0] boolValue];
-
-        [[FIRAnalyticsConfiguration sharedInstance] setAnalyticsCollectionEnabled:enabled];
+    BOOL enabled = [[command argumentAtIndex:0] boolValue];
+    [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     }];
+      
 }
 
 - (void)logEvent:(CDVInvokedUrlCommand *)command {
@@ -249,8 +246,12 @@ static FirebasePlugin *firebasePlugin;
 
 - (void)setScreenName:(CDVInvokedUrlCommand *)command {
     NSString* name = [command.arguments objectAtIndex:0];
+    [FIRAnalytics logEventWithName:kFIREventScreenView
+                        parameters:@{kFIRParameterScreenName: name,
+                                     kFIRParameterScreenClass: @"<unknown>"}];
 
-    [FIRAnalytics setScreenName:name screenClass:NULL];
+
+    
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }

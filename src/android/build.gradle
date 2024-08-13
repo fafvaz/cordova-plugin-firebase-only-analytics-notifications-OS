@@ -1,24 +1,37 @@
 android {
+   compileSdkVersion 30 // ou superior
   defaultConfig {
     multiDexEnabled true
   }
+  compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 buildscript {
   repositories {
     google()
-    jcenter()
-    maven {
-      url 'https://maven.fabric.io/public'
-    }
+     mavenCentral()
   }
   dependencies {
+     classpath 'com.android.tools.build:gradle:4.1.0' 
     classpath 'com.google.gms:google-services:4.3.3'
     classpath 'com.android.tools.build:gradle:3.5.2'
     classpath 'com.google.firebase:firebase-crashlytics-gradle:2.4.1'
   }
 }
 
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task cleanMyProject(type: Delete) {
+    delete rootProject.buildDir
+}
 
 repositories {
   google()
@@ -30,8 +43,8 @@ repositories {
 
 dependencies {
   implementation 'me.leolin:ShortcutBadger:1.1.22@aar'
-  implementation 'com.google.firebase:firebase-auth:17.0.0'
-  implementation 'com.google.firebase:firebase-core:16.0.9'
+  implementation 'com.google.firebase:firebase-auth:22.3.1'
+  implementation 'com.google.firebase:firebase-core:21.1.1'
   implementation('com.crashlytics.sdk.android:crashlytics:2.10.1@aar') {
     transitive = true
   }
