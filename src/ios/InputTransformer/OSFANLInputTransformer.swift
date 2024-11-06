@@ -1,22 +1,35 @@
 struct OSFANLInputTransformer: OSFANLInputTransformable {
     func transform(_ eventParameterArray: [InputParameterData]?, _ itemArray: [InputItemData]?) throws -> OSFANLInputTransformableModel {
-        var eventParameterData: InputParameterData?
-        if let eventParameterArray {
-            guard let flatResult = try? self.flat(keyValueMapArray: eventParameterArray) else {
-                throw OSFANLError.duplicateItemsIn(parameter: OSFANLInputDataFieldKey.eventParameters.rawValue)
+        do {
+            var eventParameterData: InputParameterData?
+            if let eventParameterArray {
+                eventParameterData = try self.flat(keyValueMapArray: eventParameterArray)
             }
-            eventParameterData = flatResult
+            let itemArray = try self.transform(itemArray)
+
+            return .init(eventParameterData, itemArray)
+        } catch OSFANLError.duplicateKeys {
+            throw OSFANLError.duplicateItemsIn(parameter: OSFANLInputDataFieldKey.eventParameters.rawValue)
         }
-        let itemArray = try self.transform(itemArray)
-        
-        return .init(eventParameterData, itemArray)
     }
 }
 
 private extension OSFANLInputTransformer {
     func flat(keyValueMapArray array: [InputParameterData]) throws -> InputParameterData {
-        let flatKeyValueArray = array.map {
-            [$0[OSFANLInputDataFieldKey.key.rawValue, default: ""]: $0[OSFANLInputDataFieldKey.value.rawValue, default: ""]]
+        let flatKeyValueArray = try array.reduce(into: [InputParameterData]()) { partialResult, current in
+            guard let dataFieldKey = current[OSFANLInputDataFieldKey.key.rawValue] as? String,
+                  let dataValue = current[OSFANLInputDataFieldKey.value.rawValue] as? String
+            else { return }
+
+            let value: StringConvertable
+            if let dataField = OSFANLInputDataFieldKey(rawValue: dataFieldKey), dataField.isDecimalType {
+                guard let decimalValue = Decimal(string: dataValue) else { throw OSFANLError.invalidType(dataFieldKey, type: Decimal.variableType) }
+                value = decimalValue
+            } else {
+                value = dataValue
+            }
+
+            partialResult.append([dataFieldKey: value])
         }
         let flatKeyValueDictionary = self.flat(dictionaryArray: flatKeyValueArray)
         

@@ -15,3 +15,11 @@ enum OSFANLInputDataFieldKey: String {
     case transactionId = "transaction_id"
     case value
 }
+
+extension OSFANLInputDataFieldKey {
+    private static var decimalDataFields: [OSFANLInputDataFieldKey] { [.shipping, .tax, .value] }
+    
+    var isDecimalType: Bool {
+        return OSFANLInputDataFieldKey.decimalDataFields.contains(self)
+    }
+}
