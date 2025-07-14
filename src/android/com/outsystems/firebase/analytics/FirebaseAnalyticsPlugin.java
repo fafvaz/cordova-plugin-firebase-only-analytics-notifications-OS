@@ -160,12 +160,13 @@ public class FirebaseAnalyticsPlugin extends CordovaPlugin {
 
             for (int i = 0; i < consentSettings.length(); i++) {
                 JSONObject consentItem = consentSettings.getJSONObject(i);
-                int typeValue = consentItem.getInt("Type");
-                int statusValue = consentItem.getInt("Status");
 
                 if (!consentItem.has("Type") || !consentItem.has("Status")) {
                     throw OSFANLError.Companion.invalidType("JSON passed Consent Type or Status", "Integer");
                 }
+
+                int typeValue = consentItem.getInt("Type");
+                int statusValue = consentItem.getInt("Status");
 
                 FirebaseAnalytics.ConsentType consentType = ConsentType.fromInt(typeValue);
                 FirebaseAnalytics.ConsentStatus consentStatus = ConsentStatus.fromInt(statusValue);
