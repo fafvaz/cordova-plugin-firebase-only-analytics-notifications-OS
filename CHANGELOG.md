@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The changes documented here do not include those from the original repository.
 
-### Unreleased
+## 5.0.0-OS19
 
 ### Fix
 - [Android] `setConsent` client action returning error (https://outsystemsrd.atlassian.net/browse/RMET-4309).
