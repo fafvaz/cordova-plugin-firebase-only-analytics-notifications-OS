@@ -8,8 +8,9 @@ The changes documented here do not include those from the original repository.
 
 ## 5.0.0-OS19
 
-### Fix
+### Fixes
 - [Android] `setConsent` client action returning error (https://outsystemsrd.atlassian.net/browse/RMET-4309).
+- [Android] Avoid duplicating entries in `AndroidManifest.xml` with hook for MOCA (https://outsystemsrd.atlassian.net/browse/RMET-4277).
 
 ## 5.0.0-OS18
 
