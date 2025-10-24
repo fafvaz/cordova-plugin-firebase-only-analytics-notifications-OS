@@ -2,13 +2,8 @@
   "NSPrivacyAccessedAPITypes": [
     {
       "NSPrivacyAccessedAPIType": "Networking",
-      "NSPrivacyAccessedAPIReason": "FIREBASE_MESSAGING",
-      "NSPrivacyAccessedAPIBundleIdentifier": "com.google.firebase.messaging"
-    },
-    {
-      "NSPrivacyAccessedAPIType": "Networking",
-      "NSPrivacyAccessedAPIReason": "FIREBASE_CORE",
-      "NSPrivacyAccessedAPIBundleIdentifier": "com.google.firebase.core"
+      "NSPrivacyAccessedAPIReason": "FIREBASE_USAGE",
+      "NSPrivacyAccessedAPIBundleIdentifier": "com.google.firebase"
     }
   ]
 }
