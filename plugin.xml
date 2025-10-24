@@ -108,16 +108,16 @@
     <source-file src="src/ios/AppDelegate+FirebasePlugin.m" />
     <header-file src="src/ios/FirebasePlugin.h" />
     <source-file src="src/ios/FirebasePlugin.m" />
-   
-       <podspec>
-            <config>
-                <source url="https://cdn.cocoapods.org/"/>
-                <platform ios="15.0"/>
-            </config>
-            <pods use-frameworks="true">
-                <pod name="Firebase/Analytics" spec="~> 12.3" />
-                <pod name="Firebase/Messaging" spec="~> 12.3" />
-            </pods>
-        </podspec>
+   <podspec>
+    <config>
+      <source url="https://cdn.cocoapods.org/"/>
+      <platform ios="15.0"/>
+    </config>
+    <pods>
+      <pod name="Firebase/Core" spec="~> 12.3.0"/>
+      <pod name="Firebase/Messaging" spec="~> 12.3.0"/>
+      <pod name="Firebase/Analytics" spec="~> 12.3.0"/>
+    </pods>
+  </podspec>
    </platform>
 </plugin>
