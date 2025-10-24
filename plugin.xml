@@ -114,8 +114,8 @@
                 <source url="https://cdn.cocoapods.org/"/>
             </config>
             <pods use-frameworks="true">
-                <pod name="Firebase/Analytics" spec="~> 10.23.0" />
-                <pod name="Firebase/Messaging" spec="~> 10.23.0" />
+                <pod name="Firebase/Analytics" spec="~> 12.3" />
+                <pod name="Firebase/Messaging" spec="~> 12.3" />
             </pods>
         </podspec>
    </platform>
