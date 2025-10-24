@@ -1,0 +1,6 @@
+.idea/
+.DS_Store
+*.log
+src/android/.gradle
+src/android/.project
+src/android/.settings
