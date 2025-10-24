@@ -1,7 +1,8 @@
 #import <Cordova/CDV.h>
-@import UserNotifications;
-@import FirebaseMessaging;
-@import FirebaseAnalytics;
+#import <UserNotifications/UserNotifications.h>
+#import <FirebaseCore/FirebaseCore.h>
+#import <FirebaseMessaging/FirebaseMessaging.h>
+#import <FirebaseAnalytics/FirebaseAnalytics.h>
 
 @interface FirebasePlugin : CDVPlugin <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
 
@@ -31,8 +32,8 @@
 // Utils
 - (void)clearAllNotifications:(CDVInvokedUrlCommand *)command;
 
-@property (nonatomic, copy)   NSString *notificationCallbackId;
-@property (nonatomic, copy)   NSString *tokenRefreshCallbackId;
+@property (nonatomic, copy) NSString *notificationCallbackId;
+@property (nonatomic, copy) NSString *tokenRefreshCallbackId;
 @property (nonatomic, strong) NSMutableArray *notificationStack;
 @property (nonatomic, strong) NSMutableDictionary *traces;
 

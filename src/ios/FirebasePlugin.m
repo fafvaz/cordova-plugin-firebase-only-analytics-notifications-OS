@@ -248,7 +248,8 @@ static FirebasePlugin *firebasePlugin;
     payload[@"wasTapped"] = @(NO);
     NSLog(@"FirebasePlugin - Foreground notification: %@", payload);
     [self sendNotification:payload];
-    completionHandler(UNNotificationPresentationOptionAlert |
+    completionHandler(UNNotificationPresentationOptionList |
+                     UNNotificationPresentationOptionBanner |
                      UNNotificationPresentationOptionSound |
                      UNNotificationPresentationOptionBadge);
 }

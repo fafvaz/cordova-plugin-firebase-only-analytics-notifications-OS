@@ -1,9 +1,9 @@
 #import <Cordova/CDV.h>
 #import <UserNotifications/UserNotifications.h>
-#import <FirebaseCore/FirebaseCore.h> // Explicit import for FirebaseCore
-#import <FirebaseMessaging/FirebaseMessaging.h> // Explicit import for FirebaseMessaging
+#import <FirebaseCore/FirebaseCore.h>
+#import <FirebaseMessaging/FirebaseMessaging.h>
 
-@interface AppDelegate (FirebasePlugin)
+@interface CDVAppDelegate (FirebasePlugin)
 
 @property (nonatomic, strong, nullable) NSNumber *applicationInBackground;
 
@@ -20,7 +20,7 @@
 #define kApplicationInBackgroundKey @"applicationInBackground"
 #define kDelegateKey @"delegate"
 
-@implementation AppDelegate (FirebasePlugin)
+@implementation CDVAppDelegate (FirebasePlugin)
 
 + (void)load {
     Method original = class_getInstanceMethod(self, @selector(application:didFinishLaunchingWithOptions:));
@@ -128,8 +128,9 @@ didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
     NSLog(@"FirebasePlugin - Foreground notification: %@", payload);
     [FirebasePlugin.firebasePlugin sendNotification:payload];
 
-    // Present notification in foreground
-    UNNotificationPresentationOptions options = (UNNotificationPresentationOptionAlert |
+    // Present notification in foreground (iOS 14+ compatible)
+    UNNotificationPresentationOptions options = (UNNotificationPresentationOptionList |
+                                                UNNotificationPresentationOptionBanner |
                                                 UNNotificationPresentationOptionSound |
                                                 UNNotificationPresentationOptionBadge);
     completionHandler(options);

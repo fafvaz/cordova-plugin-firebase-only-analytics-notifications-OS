@@ -1,7 +1,9 @@
 #import <Cordova/CDV.h>
 #import <UserNotifications/UserNotifications.h>
+#import <FirebaseCore/FirebaseCore.h>
+#import <FirebaseMessaging/FirebaseMessaging.h>
 
-@interface AppDelegate (FirebasePlugin)
+@interface CDVAppDelegate (FirebasePlugin)
 
 @property (nonatomic, strong, nullable) NSNumber *applicationInBackground;
 
