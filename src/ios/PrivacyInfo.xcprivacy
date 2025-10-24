@@ -1,9 +1,0 @@
-{
-  "NSPrivacyAccessedAPITypes": [
-    {
-      "NSPrivacyAccessedAPIType": "Networking",
-      "NSPrivacyAccessedAPIReason": "FIREBASE_USAGE",
-      "NSPrivacyAccessedAPIBundleIdentifier": "com.google.firebase"
-    }
-  ]
-}
