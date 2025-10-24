@@ -1,10 +1,21 @@
+#import <Cordova/CDV.h>
+#import <UserNotifications/UserNotifications.h>
+#import <FirebaseCore/FirebaseCore.h> // Explicit import for FirebaseCore
+#import <FirebaseMessaging/FirebaseMessaging.h> // Explicit import for FirebaseMessaging
+
+@interface AppDelegate (FirebasePlugin)
+
+@property (nonatomic, strong, nullable) NSNumber *applicationInBackground;
+
+#if defined(__IPHONE_10_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_10_0
+@property (nonatomic, nullable, weak) id<UNUserNotificationCenterDelegate> delegate;
+#endif
+
+@end
+
 #import "AppDelegate+FirebasePlugin.h"
 #import "FirebasePlugin.h"
 #import <objc/runtime.h>
-
-@import Firebase;
-@import FirebaseMessaging;
-@import UserNotifications;
 
 #define kApplicationInBackgroundKey @"applicationInBackground"
 #define kDelegateKey @"delegate"
@@ -24,7 +35,9 @@ swizzledDidFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // 1) Configure Firebase once
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        [FIRApp configure];
+        if (![FIRApp defaultApp]) { // Check if Firebase is already configured
+            [FIRApp configure];
+        }
     });
 
     // 2) Set up notification center (iOS 10+)
@@ -50,7 +63,7 @@ swizzledDidFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
             }
         }];
     } else {
-        // iOS 9 and below
+        // iOS 9 and below (legacy support, optional for iOS 15.0+)
         UIUserNotificationType types = (UIUserNotificationTypeAlert |
                                        UIUserNotificationTypeSound |
                                        UIUserNotificationTypeBadge);
@@ -155,20 +168,20 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 #pragma mark - Associated Objects
 
 - (NSNumber *)applicationInBackground {
-    return objc_getAssociatedObject(self, @selector(applicationInBackground));
+    return objc_getAssociatedObject(self, kApplicationInBackgroundKey);
 }
 
 - (void)setApplicationInBackground:(NSNumber *)applicationInBackground {
-    objc_setAssociatedObject(self, @selector(applicationInBackground),
+    objc_setAssociatedObject(self, kApplicationInBackgroundKey,
                              applicationInBackground, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (id<UNUserNotificationCenterDelegate>)delegate {
-    return objc_getAssociatedObject(self, @selector(delegate));
+    return objc_getAssociatedObject(self, kDelegateKey);
 }
 
 - (void)setDelegate:(id<UNUserNotificationCenterDelegate>)delegate {
-    objc_setAssociatedObject(self, @selector(delegate),
+    objc_setAssociatedObject(self, kDelegateKey,
                              delegate, OBJC_ASSOCIATION_ASSIGN);
 }
 

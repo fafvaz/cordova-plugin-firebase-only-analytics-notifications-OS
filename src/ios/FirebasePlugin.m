@@ -1,13 +1,49 @@
-#import "FirebasePlugin.h"
-@import FirebaseMessaging;
-@import FirebaseAnalytics;
-@import UserNotifications;
+#import <Cordova/CDV.h>
+#import <UserNotifications/UserNotifications.h>
+#import <FirebaseCore/FirebaseCore.h>
+#import <FirebaseMessaging/FirebaseMessaging.h>
+#import <FirebaseAnalytics/FirebaseAnalytics.h>
 
-static NSInteger const kNotificationStackSize = 10;
-static FirebasePlugin *firebasePlugin;
+@interface FirebasePlugin : CDVPlugin <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
+
++ (FirebasePlugin *)firebasePlugin;
+
+- (void)getId:(CDVInvokedUrlCommand *)command;
+- (void)getToken:(CDVInvokedUrlCommand *)command;
+- (void)hasPermission:(CDVInvokedUrlCommand *)command;
+- (void)grantPermission:(CDVInvokedUrlCommand *)command;
+- (void)setBadgeNumber:(CDVInvokedUrlCommand *)command;
+- (void)getBadgeNumber:(CDVInvokedUrlCommand *)command;
+- (void)subscribe:(CDVInvokedUrlCommand *)command;
+- (void)unsubscribe:(CDVInvokedUrlCommand *)command;
+- (void)unregister:(CDVInvokedUrlCommand *)command;
+- (void)onNotificationOpen:(CDVInvokedUrlCommand *)command;
+- (void)onTokenRefresh:(CDVInvokedUrlCommand *)command;
+- (void)sendNotification:(NSDictionary *)userInfo;
+- (void)sendToken:(NSString *)token;
+
+// Analytics
+- (void)logEvent:(CDVInvokedUrlCommand *)command;
+- (void)setScreenName:(CDVInvokedUrlCommand *)command;
+- (void)setUserId:(CDVInvokedUrlCommand *)command;
+- (void)setUserProperty:(CDVInvokedUrlCommand *)command;
+- (void)setAnalyticsCollectionEnabled:(CDVInvokedUrlCommand *)command;
+
+// Utils
+- (void)clearAllNotifications:(CDVInvokedUrlCommand *)command;
+
+@property (nonatomic, copy) NSString *notificationCallbackId;
+@property (nonatomic, copy) NSString *tokenRefreshCallbackId;
+@property (nonatomic, strong) NSMutableArray *notificationStack;
+@property (nonatomic, strong) NSMutableDictionary *traces;
+
+@end
 
 @implementation FirebasePlugin
 @synthesize notificationCallbackId, tokenRefreshCallbackId, notificationStack, traces;
+
+static NSInteger const kNotificationStackSize = 10;
+static FirebasePlugin *firebasePlugin;
 
 + (FirebasePlugin *)firebasePlugin {
     return firebasePlugin;
@@ -16,7 +52,7 @@ static FirebasePlugin *firebasePlugin;
 - (void)pluginInitialize {
     NSLog(@"FirebasePlugin - Starting Firebase plugin");
     firebasePlugin = self;
-    [FIRMessaging messaging].delegate = self; // FIRApp.configure acontece no AppDelegate
+    [FIRMessaging messaging].delegate = self; // FIRApp.configure handled in AppDelegate
 }
 
 #pragma mark - Notifications
@@ -43,15 +79,13 @@ static FirebasePlugin *firebasePlugin;
     if ([UNUserNotificationCenter class]) {
         [[UNUserNotificationCenter currentNotificationCenter]
             getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
-
-            BOOL enabled = (settings.authorizationStatus == UNAuthorizationStatusAuthorized
-                         || settings.authorizationStatus == UNAuthorizationStatusProvisional);
-
-            CDVPluginResult *result =
-                [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                               messageAsDictionary:@{ @"isEnabled": @(enabled) }];
-            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
-        }];
+                BOOL enabled = (settings.authorizationStatus == UNAuthorizationStatusAuthorized
+                               || settings.authorizationStatus == UNAuthorizationStatusProvisional);
+                CDVPluginResult *result =
+                    [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                  messageAsDictionary:@{ @"isEnabled": @(enabled) }];
+                [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+            }];
     } else {
         UIApplication *application = [UIApplication sharedApplication];
         BOOL enabled = NO;
@@ -74,8 +108,8 @@ static FirebasePlugin *firebasePlugin;
     if ([UNUserNotificationCenter class]) {
         [UNUserNotificationCenter currentNotificationCenter].delegate = self;
         UNAuthorizationOptions authOptions = (UNAuthorizationOptionAlert |
-                                              UNAuthorizationOptionSound |
-                                              UNAuthorizationOptionBadge);
+                                             UNAuthorizationOptionSound |
+                                             UNAuthorizationOptionBadge);
         [[UNUserNotificationCenter currentNotificationCenter]
             requestAuthorizationWithOptions:authOptions
             completionHandler:^(BOOL granted, NSError * _Nullable error) {
@@ -92,8 +126,8 @@ static FirebasePlugin *firebasePlugin;
             }];
     } else {
         UIUserNotificationType allTypes = (UIUserNotificationTypeSound |
-                                           UIUserNotificationTypeAlert |
-                                           UIUserNotificationTypeBadge);
+                                          UIUserNotificationTypeAlert |
+                                          UIUserNotificationTypeBadge);
         UIUserNotificationSettings *settings =
             [UIUserNotificationSettings settingsForTypes:allTypes categories:nil];
         [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
@@ -108,21 +142,19 @@ static FirebasePlugin *firebasePlugin;
     NSInteger number = [[command.arguments objectAtIndex:0] integerValue];
     [self.commandDelegate runInBackground:^{
         [UIApplication sharedApplication].applicationIconBadgeNumber = number;
-        [self.commandDelegate sendPluginResult:
-            [CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
     }];
 }
 
 - (void)getBadgeNumber:(CDVInvokedUrlCommand *)command {
     [self.commandDelegate runInBackground:^{
         NSInteger badge = [UIApplication sharedApplication].applicationIconBadgeNumber;
-        [self.commandDelegate sendPluginResult:
-            [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDouble:(double)badge]
-                                     callbackId:command.callbackId];
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDouble:(double)badge];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
     }];
 }
 
-// *** Sem "/topics/" — apenas o nome do tópico
 - (void)subscribe:(CDVInvokedUrlCommand *)command {
     NSString *topic = [command.arguments objectAtIndex:0];
     [[FIRMessaging messaging] subscribeToTopic:topic completion:^(NSError * _Nullable error) {
@@ -165,7 +197,9 @@ static FirebasePlugin *firebasePlugin;
 - (void)onTokenRefresh:(CDVInvokedUrlCommand *)command {
     self.tokenRefreshCallbackId = command.callbackId;
     [[FIRMessaging messaging] tokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
-        if (!error && token) { [self sendToken:token]; }
+        if (!error && token) {
+            [self sendToken:token];
+        }
     }];
 }
 
@@ -175,7 +209,7 @@ static FirebasePlugin *firebasePlugin;
         if (!payload[@"FromPushNotification"]) payload[@"FromPushNotification"] = @"true";
         CDVPluginResult *pluginResult =
             [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:payload];
-        pluginResult.keepCallback = @YES;
+        [pluginResult setKeepCallbackAsBool:YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.notificationCallbackId];
     } else {
         if (!self.notificationStack) self.notificationStack = [NSMutableArray array];
@@ -190,7 +224,7 @@ static FirebasePlugin *firebasePlugin;
     if (self.tokenRefreshCallbackId && token) {
         CDVPluginResult *pluginResult =
             [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:token];
-        pluginResult.keepCallback = @YES;
+        [pluginResult setKeepCallbackAsBool:YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.tokenRefreshCallbackId];
     }
 }
@@ -199,10 +233,10 @@ static FirebasePlugin *firebasePlugin;
 
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)fcmToken {
     NSLog(@"FirebasePlugin - FCM registration token refreshed: %@", fcmToken);
-    if (fcmToken) { [self sendToken:fcmToken]; }
+    if (fcmToken) {
+        [self sendToken:fcmToken];
+    }
 }
-
-// (Opcional) Antigo canal direto removido: -messaging:didReceiveMessage:
 
 #pragma mark - UNUserNotificationCenterDelegate
 
@@ -215,8 +249,8 @@ static FirebasePlugin *firebasePlugin;
     NSLog(@"FirebasePlugin - Foreground notification: %@", payload);
     [self sendNotification:payload];
     completionHandler(UNNotificationPresentationOptionAlert |
-                      UNNotificationPresentationOptionSound |
-                      UNNotificationPresentationOptionBadge);
+                     UNNotificationPresentationOptionSound |
+                     UNNotificationPresentationOptionBadge);
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
@@ -235,8 +269,8 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 - (void)setAnalyticsCollectionEnabled:(CDVInvokedUrlCommand *)command {
     BOOL enabled = [[command argumentAtIndex:0] boolValue];
     [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
-    [self.commandDelegate sendPluginResult:
-        [CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+    CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
 }
 
 - (void)logEvent:(CDVInvokedUrlCommand *)command {
@@ -254,8 +288,8 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
             parameters = @{ NSLocalizedDescriptionKey: @"Invalid parameters" };
         }
         [FIRAnalytics logEventWithName:name parameters:parameters];
-        [self.commandDelegate sendPluginResult:
-            [CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
     }];
 }
 
@@ -263,18 +297,19 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     NSString *name = [command.arguments objectAtIndex:0];
     if (name) {
         [FIRAnalytics logEventWithName:kFIREventScreenView
-                             parameters:@{ kFIRParameterScreenName: name,
-                                           kFIRParameterScreenClass: @"CordovaViewController" }];
+                            parameters:@{ kFIRParameterScreenName: name,
+                                          kFIRParameterScreenClass: @"CordovaViewController" }];
     }
-    [self.commandDelegate sendPluginResult:
-        [CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+    CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
 }
 
 - (void)setUserId:(CDVInvokedUrlCommand *)command {
     [self.commandDelegate runInBackground:^{
-        [FIRAnalytics setUserID:[command.arguments objectAtIndex:0]];
-        [self.commandDelegate sendPluginResult:
-            [CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+        NSString *userId = [command.arguments objectAtIndex:0];
+        [FIRAnalytics setUserID:userId];
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
     }];
 }
 
@@ -282,9 +317,11 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     [self.commandDelegate runInBackground:^{
         NSString *name = [command.arguments objectAtIndex:0];
         NSString *value = [command.arguments objectAtIndex:1];
-        if (name && value) [FIRAnalytics setUserPropertyString:value forName:name];
-        [self.commandDelegate sendPluginResult:
-            [CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+        if (name && value) {
+            [FIRAnalytics setUserPropertyString:value forName:name];
+        }
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
     }];
 }
 
@@ -294,8 +331,8 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
         if ([UNUserNotificationCenter class]) {
             [[UNUserNotificationCenter currentNotificationCenter] removeAllDeliveredNotifications];
         }
-        [self.commandDelegate sendPluginResult:
-            [CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
     }];
 }
 

@@ -112,6 +112,7 @@
        <podspec>
             <config>
                 <source url="https://cdn.cocoapods.org/"/>
+                <platform ios="15.0"/>
             </config>
             <pods use-frameworks="true">
                 <pod name="Firebase/Analytics" spec="~> 12.3" />
