@@ -3,6 +3,7 @@
 #import <objc/runtime.h>
 
 @import Firebase;
+@import FirebaseMessaging;
 @import UserNotifications;
 
 #define kApplicationInBackgroundKey @"applicationInBackground"
@@ -18,60 +19,66 @@
 
 - (BOOL)application:(UIApplication *)application
 swizzledDidFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    NSLog(@"FirebasePlugin - Configuring Firebase in didFinishLaunching");
 
-    NSLog(@"FirebasePlugin - Finished launching");
-
-    // 1) Configure Firebase o mais cedo possível
+    // 1) Configure Firebase once
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         [FIRApp configure];
     });
 
-    // 2) Central de notificações (iOS 10+) + delegate
-    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-    center.delegate = (id<UNUserNotificationCenterDelegate>)self;
+    // 2) Set up notification center (iOS 10+)
+    if ([UNUserNotificationCenter class]) {
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        center.delegate = (id<UNUserNotificationCenterDelegate>)self;
 
-    // 3) Solicitar autorização (alerta, som, badge)
-    UNAuthorizationOptions options = (UNAuthorizationOptionAlert |
-                                      UNAuthorizationOptionSound |
-                                      UNAuthorizationOptionBadge);
-    [center requestAuthorizationWithOptions:options
-                          completionHandler:^(BOOL granted, NSError * _Nullable error) {
-        if (error) {
-            NSLog(@"FirebasePlugin - Erro ao solicitar autorização de push: %@", error);
-        }
-        if (granted) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [[UIApplication sharedApplication] registerForRemoteNotifications];
-            });
-        } else {
-            NSLog(@"FirebasePlugin - Permissão de push negada pelo usuário");
-        }
-    }];
+        // Request authorization for notifications
+        UNAuthorizationOptions options = (UNAuthorizationOptionAlert |
+                                         UNAuthorizationOptionSound |
+                                         UNAuthorizationOptionBadge);
+        [center requestAuthorizationWithOptions:options
+                             completionHandler:^(BOOL granted, NSError * _Nullable error) {
+            if (error) {
+                NSLog(@"FirebasePlugin - Error requesting push authorization: %@", error);
+            } else if (granted) {
+                NSLog(@"FirebasePlugin - Push authorization granted");
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [[UIApplication sharedApplication] registerForRemoteNotifications];
+                });
+            } else {
+                NSLog(@"FirebasePlugin - Push authorization denied");
+            }
+        }];
+    } else {
+        // iOS 9 and below
+        UIUserNotificationType types = (UIUserNotificationTypeAlert |
+                                       UIUserNotificationTypeSound |
+                                       UIUserNotificationTypeBadge);
+        UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:types categories:nil];
+        [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+        [[UIApplication sharedApplication] registerForRemoteNotifications];
+    }
 
-    // 4) Messaging delegate para token FCM e mensagens de dados
+    // 3) Set Firebase Messaging delegate
     [FIRMessaging messaging].delegate = (id<FIRMessagingDelegate>)self;
 
-    // 5) Estado inicial: em background até o app ficar ativo
+    // 4) Initialize application background state
     self.applicationInBackground = @(YES);
 
-    // Chama a implementação original (depois da configuração acima)
+    // Call original implementation
     return [self application:application swizzledDidFinishLaunchingWithOptions:launchOptions];
 }
 
-#pragma mark - FIRMessagingDelegate (token FCM moderno)
+#pragma mark - FIRMessagingDelegate
 
-- (void)messaging:(FIRMessaging *)messaging
-didReceiveRegistrationToken:(NSString *)fcmToken {
-    if (fcmToken.length > 0) {
-        NSLog(@"FirebasePlugin - Token FCM atualizado: %@", fcmToken);
+- (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)fcmToken {
+    NSLog(@"FirebasePlugin - FCM registration token: %@", fcmToken);
+    if (fcmToken) {
         [FirebasePlugin.firebasePlugin sendToken:fcmToken];
-    } else {
-        NSLog(@"FirebasePlugin - Token FCM vazio/indisponível");
     }
 }
 
-#pragma mark - App lifecycle
+#pragma mark - App Lifecycle
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
     self.applicationInBackground = @(NO);
@@ -85,87 +92,67 @@ didReceiveRegistrationToken:(NSString *)fcmToken {
 
 - (void)application:(UIApplication *)application
 didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
-    // O Firebase usará esse APNs token para mapear o FCM token
+    NSLog(@"FirebasePlugin - Received APNs token");
     [FIRMessaging messaging].APNSToken = deviceToken;
 }
 
-#pragma mark - Recebimento de notificações
-
-// iOS 10+: app em primeiro plano
-- (void)userNotificationCenter:(UNUserNotificationCenter *)center
-       willPresentNotification:(UNNotification *)notification
-         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler {
-
-    NSDictionary *userInfo = notification.request.content.userInfo;
-
-    // Marcar que veio de push e foi "apresentada"
-    NSMutableDictionary *userInfoMutable = [userInfo mutableCopy];
-    userInfoMutable[@"FromPushNotification"] = @"true";
-
-    // Notifica JS (evento "recebida" com app em foreground)
-    [self handleRemoteNotification:userInfoMutable clickOpen:@"false"];
-
-    // Apresentação visual enquanto em foreground
-    UNNotificationPresentationOptions opts =
-        (UNNotificationPresentationOptionAlert |
-         UNNotificationPresentationOptionSound |
-         UNNotificationPresentationOptionBadge);
-    completionHandler(opts);
+- (void)application:(UIApplication *)application
+didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+    NSLog(@"FirebasePlugin - Failed to register for remote notifications: %@", error);
 }
 
-// iOS 10+: clique/ação do usuário na notificação
+#pragma mark - UNUserNotificationCenterDelegate (iOS 10+)
+
+// Foreground notifications
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
- didReceiveNotificationResponse:(UNNotificationResponse *)response
-          withCompletionHandler:(void (^)(void))completionHandler {
+       willPresentNotification:(UNNotification *)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+    NSDictionary *userInfo = notification.request.content.userInfo;
+    NSMutableDictionary *payload = [userInfo mutableCopy];
+    payload[@"FromPushNotification"] = @"true";
+    payload[@"wasTapped"] = @(NO);
 
+    NSLog(@"FirebasePlugin - Foreground notification: %@", payload);
+    [FirebasePlugin.firebasePlugin sendNotification:payload];
+
+    // Present notification in foreground
+    UNNotificationPresentationOptions options = (UNNotificationPresentationOptionAlert |
+                                                UNNotificationPresentationOptionSound |
+                                                UNNotificationPresentationOptionBadge);
+    completionHandler(options);
+}
+
+// User interaction with notification
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+didReceiveNotificationResponse:(UNNotificationResponse *)response
+         withCompletionHandler:(void (^)(void))completionHandler {
     NSDictionary *userInfo = response.notification.request.content.userInfo;
-    NSMutableDictionary *userInfoMutable = [userInfo mutableCopy];
-    userInfoMutable[@"FromPushNotification"] = @"true";
+    NSMutableDictionary *payload = [userInfo mutableCopy];
+    payload[@"FromPushNotification"] = @"true";
+    payload[@"wasTapped"] = @(YES);
 
-    [self handleRemoteNotification:userInfoMutable clickOpen:@"true"];
+    NSLog(@"FirebasePlugin - Notification tapped: %@", payload);
+    [FirebasePlugin.firebasePlugin sendNotification:payload];
+
     completionHandler();
 }
 
-// iOS 7–9 e/ou mensagens silenciosas com fetch
-- (void)application:(UIApplication *)application
-didReceiveRemoteNotification:(NSDictionary *)userInfo {
-    [self handleRemoteNotification:userInfo clickOpen:@"false"];
-}
+#pragma mark - iOS 7-9 Notification Handling
 
 - (void)application:(UIApplication *)application
 didReceiveRemoteNotification:(NSDictionary *)userInfo
 fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
+    NSMutableDictionary *payload = [userInfo mutableCopy];
+    payload[@"FromPushNotification"] = @"true";
+    payload[@"wasTapped"] = @([self.applicationInBackground boolValue]);
 
-    [self handleRemoteNotification:userInfo clickOpen:@"false"];
+    NSLog(@"FirebasePlugin - Received remote notification (iOS 7-9): %@", payload);
+    [FirebasePlugin.firebasePlugin sendNotification:payload];
+
     completionHandler(UIBackgroundFetchResultNewData);
 }
 
-#pragma mark - Encaminhamento unificado
-
-- (void)handleRemoteNotification:(NSDictionary *)userInfo clickOpen:(NSString *)clickOpen {
-    NSLog(@"FirebasePlugin - Received remote notification: %@", userInfo);
-
-    BOOL isInBackground = [self.applicationInBackground boolValue];
-    if (isInBackground) {
-        NSLog(@"FirebasePlugin - App in background, received remote notification");
-    } else {
-        NSLog(@"FirebasePlugin - App in foreground, received remote notification");
-    }
-
-    NSMutableDictionary *payload = [userInfo mutableCopy];
-    payload[@"FromPushNotification"] = ([clickOpen isEqualToString:@"true"] ? @"true" : @"false");
-
-    NSNotificationCenter *nc = NSNotificationCenter.defaultCenter;
-    if ([clickOpen isEqualToString:@"true"]) {
-        [nc postNotificationName:@"FirebaseRemoteNotificationClickedDispatch" object:payload];
-    } else {
-        [nc postNotificationName:@"FirebaseRemoteNotificationReceivedDispatch" object:payload];
-    }
-
-    [FirebasePlugin.firebasePlugin sendNotification:payload];
-}
-
-#pragma mark - Associated object (background flag)
+#pragma mark - Associated Objects
 
 - (NSNumber *)applicationInBackground {
     return objc_getAssociatedObject(self, @selector(applicationInBackground));
@@ -174,6 +161,15 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 - (void)setApplicationInBackground:(NSNumber *)applicationInBackground {
     objc_setAssociatedObject(self, @selector(applicationInBackground),
                              applicationInBackground, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (id<UNUserNotificationCenterDelegate>)delegate {
+    return objc_getAssociatedObject(self, @selector(delegate));
+}
+
+- (void)setDelegate:(id<UNUserNotificationCenterDelegate>)delegate {
+    objc_setAssociatedObject(self, @selector(delegate),
+                             delegate, OBJC_ASSOCIATION_ASSIGN);
 }
 
 @end

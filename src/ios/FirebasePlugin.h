@@ -17,24 +17,13 @@
 - (void)sendNotification:(NSDictionary *)userInfo;
 - (void)sendToken:(NSString *)token;
 - (void)logEvent:(CDVInvokedUrlCommand *)command;
-// - (void)logError:(CDVInvokedUrlCommand *)command;
-// - (void)setCrashlyticsUserId:(CDVInvokedUrlCommand*)command;
 - (void)setScreenName:(CDVInvokedUrlCommand *)command;
 - (void)setUserId:(CDVInvokedUrlCommand *)command;
 - (void)setUserProperty:(CDVInvokedUrlCommand *)command;
-// - (void)activateFetched:(CDVInvokedUrlCommand *)command;
-// - (void)fetch:(CDVInvokedUrlCommand *)command;
-// - (void)getValue:(CDVInvokedUrlCommand *)command;
-// - (void)startTrace:(CDVInvokedUrlCommand *)command;
-// - (void)incrementCounter:(CDVInvokedUrlCommand *)command;
-// - (void)stopTrace:(CDVInvokedUrlCommand *)command;
-// - (void)forceCrashlytics:(CDVInvokedUrlCommand *)command;
-// - (void)setPerformanceCollectionEnabled:(CDVInvokedUrlCommand*)command;
 - (void)setAnalyticsCollectionEnabled:(CDVInvokedUrlCommand *)command;
 - (void)clearAllNotifications:(CDVInvokedUrlCommand *)command;
-@property(nonatomic, copy) NSString *notificationCallbackId;
-@property(nonatomic, copy) NSString *tokenRefreshCallbackId;
-@property(nonatomic, retain) NSMutableArray *notificationStack;
-@property(nonatomic, readwrite) NSMutableDictionary *traces;
-
+@property (nonatomic, copy) NSString *notificationCallbackId;
+@property (nonatomic, copy) NSString *tokenRefreshCallbackId;
+@property (nonatomic, retain) NSMutableArray *notificationStack;
+@property (nonatomic, readwrite) NSMutableDictionary *traces;
 @end
