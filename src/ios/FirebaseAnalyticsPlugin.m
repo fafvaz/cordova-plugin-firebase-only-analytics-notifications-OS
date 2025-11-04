@@ -1,8 +1,17 @@
 #import "FirebaseAnalyticsPlugin.h"
 #if __has_include(<CordovaPluginsStatic/CordovaPluginsStatic-Swift.h>)
     #import <CordovaPluginsStatic/CordovaPluginsStatic-Swift.h>
-#else
+#elif __has_include("OutSystems-Swift.h")
     #import "OutSystems-Swift.h"
+#elif __has_include("TAU_Student-Swift.h")
+    #import "TAU_Student-Swift.h"
+#else
+    // Forward declare Swift classes if bridging header not found
+    @class OSFANLManager;
+    @class OSFANLManagerFactory;
+    @class OSFANLOutputModel;
+    @class OSFANLConsentHelper;
+    @protocol OSFANLManageable;
 #endif
 
 @import AppTrackingTransparency;
