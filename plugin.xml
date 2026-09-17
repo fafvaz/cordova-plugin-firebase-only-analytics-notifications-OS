@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-firebase" version="0.2.1" 
+<plugin id="cordova-plugin-firebase" version="0.3.0" 
   xmlns="http://apache.org/cordova/ns/plugins/1.0" 
   xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -21,11 +21,6 @@
   <preference name="APP_PATH" default="/" />
 
   <platform name="android">
-    <!-- crashlytics after_plugin_install hook removed: it injected the Fabric-era
-         crashlytics classpath/plugin into the root build.gradle, which breaks
-         AGP 8.x (MABS 11+) builds. This plugin ships analytics + notifications only. -->
-    <!-- <hook type="after_plugin_install" src="scripts/crashlytics/android/after_plugin_install.js" /> -->
-    <hook type="before_plugin_uninstall" src="scripts/crashlytics/android/before_plugin_uninstall.js" />
     <hook type="before_plugin_install" src="scripts/configurations/unzipAndCopySound.js" />
 
     <config-file parent="/*" target="res/xml/config.xml">
@@ -79,12 +74,11 @@
     <source-file src="src/android/OnNotificationOpenActivity.java" target-dir="src/org/apache/cordova/firebase" />
 
     <framework src="src/android/build.gradle" custom="true" type="gradleReference" />
-    <framework src="com.google.gms:google-services:4.4.2" />
-    <framework src="com.google.firebase:firebase-analytics:21.5.1" />
-    <framework src="com.google.firebase:firebase-messaging:23.4.1" />
-    <framework src="com.google.firebase:firebase-config:21.6.1" />
-    <framework src="com.google.firebase:firebase-perf:20.5.2" />
-    <framework src="com.google.firebase:firebase-dynamic-links:21.2.0" />
+    <framework src="com.google.firebase:firebase-analytics:22.5.0" />
+    <framework src="com.google.firebase:firebase-messaging:24.1.2" />
+    <framework src="com.google.firebase:firebase-config:23.0.1" />
+    <framework src="com.google.firebase:firebase-perf:22.0.3" />
+    <framework src="com.google.firebase:firebase-dynamic-links:22.1.0" />
    </platform>
 
   <platform name="ios">
@@ -111,16 +105,15 @@
     <source-file src="src/ios/AppDelegate+FirebasePlugin.m" />
     <header-file src="src/ios/FirebasePlugin.h" />
     <source-file src="src/ios/FirebasePlugin.m" />
-   <podspec>
-    <config>
-      <source url="https://cdn.cocoapods.org/"/>
-      <platform ios="15.0"/>
-    </config>
-    <pods>
-      <pod name="Firebase/Core" spec="~> 12.3.0"/>
-      <pod name="Firebase/Messaging" spec="~> 12.3.0"/>
-      <pod name="Firebase/Analytics" spec="~> 12.3.0"/>
-    </pods>
-  </podspec>
+   
+       <podspec>
+            <config>
+                <source url="https://cdn.cocoapods.org/"/>
+            </config>
+            <pods use-frameworks="true">
+                <pod name="Firebase/Analytics" spec="~> 11.0" />
+                <pod name="Firebase/Messaging" spec="~> 11.0" />
+            </pods>
+        </podspec>
    </platform>
 </plugin>

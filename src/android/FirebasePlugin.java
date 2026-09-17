@@ -64,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.AuthResult;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
@@ -71,6 +72,7 @@ import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
 
+// Crashlytics
 
 // Dynamic Links
 import com.google.firebase.dynamiclinks.DynamicLink;
@@ -297,7 +299,7 @@ public class FirebasePlugin extends CordovaPlugin {
         try {
           json.put(key, bundle.get(key));
         } catch (JSONException e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
           return;
         }
@@ -376,7 +378,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                     }
                 });
             } catch (Exception e) {
-                Log.e(TAG, "FirebasePlugin error", e);
+                FirebaseCrashlytics.getInstance().recordException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -394,7 +396,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                 callbackContext.success(uniqueID);
                 Log.d(TAG, "getUniqueId success. ID: " + uniqueID);
             } catch (Exception e) {
-                Log.e(TAG, "FirebasePlugin error", e);
+                FirebaseCrashlytics.getInstance().recordException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -422,7 +424,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                     }
                 });
             } catch (Exception e) {
-                Log.e(TAG, "FirebasePlugin error", e);
+                FirebaseCrashlytics.getInstance().recordException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -443,7 +445,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success(object);
           Log.d(TAG, "hasPermission success. areEnabled: " + (areNotificationsEnabled ? "true" : "false"));
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -463,7 +465,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setBadgeNumber success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -481,7 +483,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success(number);
           Log.d(TAG, "getBadgeNumber success. number: " + Integer.toString(number));
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -504,7 +506,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "subscribe success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -571,7 +573,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
         } catch (Exception e) {
           System.out.println("request 4");
           System.out.println(e);
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -590,7 +592,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "unsubscribe success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -634,7 +636,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                         }
                     });
             } catch (Exception e) {
-                Log.e(TAG, "FirebasePlugin error", e);
+                FirebaseCrashlytics.getInstance().recordException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -653,7 +655,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "clearAllNotifications success");
         } catch (Exception e) {
-          Log.e(TAG, e.getMessage());
+          FirebaseCrashlytics.getInstance().log(e.getMessage());
         }
       }
     });
@@ -731,7 +733,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "logEvent success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -747,7 +749,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setScreenName success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -763,7 +765,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setUserId success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -779,7 +781,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setUserProperty success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -796,7 +798,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setAnalyticsCollectionEnabled success");
         } catch (Exception e) {
-          Log.e(TAG, e.getMessage());
+          FirebaseCrashlytics.getInstance().log(e.getMessage());
           callbackContext.error(e.getMessage());
         }
       }
@@ -826,7 +828,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "startTrace success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -852,7 +854,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             Log.d(TAG, "incrementCounter trace not found");
           }
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -879,7 +881,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             Log.d(TAG, "stopTrace trace not found");
           }
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -905,7 +907,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             Log.d(TAG, "addTraceAttribute trace not found");
           }
         } catch (Exception e) {
-          Log.e(TAG, e.getMessage());
+          FirebaseCrashlytics.getInstance().log(e.getMessage());
           callbackContext.error(e.getMessage());
         }
       }
@@ -922,7 +924,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setPerformanceCollectionEnabled success");
         } catch (Exception e) {
-          Log.e(TAG, e.getMessage());
+          FirebaseCrashlytics.getInstance().log(e.getMessage());
           callbackContext.error(e.getMessage());
         }
       }
@@ -937,7 +939,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     final FirebasePlugin self = this;
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
-        throw new RuntimeException("FirebasePlugin test crash requested (forceCrashlytics)");
+        FirebaseCrashlytics.getInstance().crash();
       }
     });
   }
@@ -947,11 +949,11 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         try {
-          Log.e(TAG, "FirebasePlugin logError", new Exception(message));
+          FirebaseCrashlytics.getInstance().recordException(new Exception(message));
           callbackContext.success(1);
           Log.d(TAG, "logError success");
         } catch (Exception e) {
-          Log.e(TAG, e.getMessage());
+          FirebaseCrashlytics.getInstance().log(e.getMessage());
           callbackContext.error(e.getMessage());
         }
       }
@@ -963,11 +965,11 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     cordova.getActivity().runOnUiThread(new Runnable() {
       public void run() {
         try {
-          Log.i(TAG, "Crashlytics removed - userId not set: " + userId);
+          FirebaseCrashlytics.getInstance().setUserId(userId);
           callbackContext.success();
           Log.d(TAG, "setCrashlyticsUserId success");
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -998,7 +1000,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                         }
                     });
             } catch (Exception e) {
-                Log.e(TAG, "FirebasePlugin error", e);
+                FirebaseCrashlytics.getInstance().recordException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -1034,7 +1036,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             }
           });
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1061,14 +1063,14 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                                         callbackContext.success(object);
                                         Log.d(TAG, "getByteArray success");
                                     } catch (Exception e) {
-                                        Log.e(TAG, "FirebasePlugin error", e);
+                                        FirebaseCrashlytics.getInstance().recordException(e);
                                         callbackContext.error(e.getMessage());
                                         Log.e(TAG, "Error in getByteArray", e);
                                     }
                                 } else {
                                     Exception exception = task.getException();
                                     if (exception != null) {
-                                        Log.e(TAG, "FirebasePlugin error", exception);
+                                        FirebaseCrashlytics.getInstance().recordException(exception);
                                         callbackContext.error(exception.getMessage());
                                     } else {
                                         callbackContext.error("getByteArray failed");
@@ -1078,7 +1080,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                             }
                         });
             } catch (Exception e) {
-                Log.e(TAG, "FirebasePlugin error", e);
+                FirebaseCrashlytics.getInstance().recordException(e);
                 callbackContext.error(e.getMessage());
                 Log.e(TAG, "Error in getByteArray", e);
             }
@@ -1097,7 +1099,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           Log.d(TAG, "getValue success. value: " + value.asString());
           callbackContext.success(value.asString());
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1119,7 +1121,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
 
           callbackContext.success(info);
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1133,7 +1135,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           
           callbackContext.success();
         } catch (Exception e) {
-          Log.e(TAG, "FirebasePlugin error", e);
+          FirebaseCrashlytics.getInstance().recordException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1154,7 +1156,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                                 } else {
                                     Exception exception = task.getException();
                                     if (exception != null) {
-                                        Log.e(TAG, "FirebasePlugin error", exception);
+                                        FirebaseCrashlytics.getInstance().recordException(exception);
                                         callbackContext.error(exception.getMessage());
                                     } else {
                                         callbackContext.error("setDefaultsAsync failed");
@@ -1164,7 +1166,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                             }
                         });
             } catch (Exception e) {
-                Log.e(TAG, "FirebasePlugin error", e);
+                FirebaseCrashlytics.getInstance().recordException(e);
                 callbackContext.error(e.getMessage());
             }
         }
