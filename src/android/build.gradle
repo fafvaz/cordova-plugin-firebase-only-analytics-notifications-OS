@@ -1,35 +1,37 @@
-android {
-  defaultConfig {
-    multiDexEnabled true
-  }
-  compileOptions {
-    sourceCompatibility JavaVersion.VERSION_17
-    targetCompatibility JavaVersion.VERSION_17
-  }
-}
-
 // MABS 12+ (Gradle 8 / AGP 8 / Java 17):
 // - Do NOT declare the Android Gradle Plugin classpath here (MABS owns it).
 // - Do NOT override compileSdkVersion (MABS sets it, e.g. 34/35).
+
+// Google Services Gradle plugin - MUST be at root level (outside android block)
 buildscript {
-  repositories {
-    google()
-    mavenCentral()
-  }
-  dependencies {
-    classpath 'com.google.gms:google-services:4.5.0'
-  }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.gms:google-services:4.5.0'
+    }
+}
+
+android {
+    defaultConfig {
+        multiDexEnabled true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }
 
 repositories {
-  google()
-  mavenCentral()
+    google()
+    mavenCentral()
 }
 
 dependencies {
-  implementation 'me.leolin:ShortcutBadger:1.1.22@aar'
-  implementation 'com.google.firebase:firebase-auth:23.0.0'
-  implementation 'com.google.firebase:firebase-crashlytics:19.0.3'
+    implementation 'me.leolin:ShortcutBadger:1.1.22@aar'
+    implementation 'com.google.firebase:firebase-auth:23.0.0'
+    implementation 'com.google.firebase:firebase-crashlytics:19.0.3'
 }
 
 // OPTIONAL hardening: if ANOTHER plugin in the app pulls a Firebase Android artifact
@@ -49,13 +51,13 @@ dependencies {
 // }
 
 cdvPluginPostBuildExtras.add({
-  apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.gms.google-services'
 })
 
 // OPTIONAL: apply the Crashlytics Gradle plugin, which is what generates the Crashlytics
 // build ID (assets/crashlytics-build.properties + the mapping file id). firebase-crashlytics
 // 18/19 needs it, otherwise FirebaseInitProvider aborts the app at launch with
-// "IllegalStateException: The Crashlytics build ID is missing".
+// "IllegalStateException: The Crashlytics build ID is missing". 
 // MABS owns the Gradle toolchain, so this is opt-in and UNVERIFIED on MABS: enable it only if
 // you need symbolicated crash reports and you can test a build, then DELETE
 // src/android/cordova-plugin-firebase-crashlytics.xml (and its plugin.xml resource-file entry)
