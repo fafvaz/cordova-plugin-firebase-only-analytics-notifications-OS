@@ -936,10 +936,14 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
   //
   private void forceCrashlytics(final CallbackContext callbackContext) {
     Log.d(TAG, "forceCrashlytics called");
-    final FirebasePlugin self = this;
-    cordova.getThreadPool().execute(new Runnable() {
+    // FirebaseCrashlytics.crash() was removed in firebase-crashlytics 19.0.0, so an
+    // uncaught RuntimeException is thrown instead: this is the supported way to
+    // intentionally crash the app in order to test crash reporting.
+    // Throwing on the main (UI) thread guarantees the process is terminated and the
+    // crash is recorded and reported by Crashlytics as a fatal crash.
+    cordova.getActivity().runOnUiThread(new Runnable() {
       public void run() {
-        FirebaseCrashlytics.getInstance().crash();
+        throw new RuntimeException("Force crashlytics: intentional crash to test crash reporting");
       }
     });
   }
