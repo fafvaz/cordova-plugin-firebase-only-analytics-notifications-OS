@@ -1,17 +1,12 @@
 // MABS 12+ (Gradle 8 / AGP 8 / Java 17):
 // - Do NOT declare the Android Gradle Plugin classpath here (MABS owns it).
 // - Do NOT override compileSdkVersion (MABS sets it, e.g. 34/35).
-
-// Google Services Gradle plugin - MUST be at root level (outside android block)
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.google.gms:google-services:4.5.0'
-    }
-}
+// - The com.google.gms.google-services Gradle plugin is NOT applied here because:
+//   * In MABS 11: It would be added by the main project or another Firebase plugin
+//   * In MABS 12: Plugins cannot reliably add Gradle plugins via buildscript
+//   * The google-services.json file is still processed if the plugin is applied elsewhere
+//   * If you need the Google Services Gradle plugin, add it via another plugin or 
+//     ensure cordova-plugin-google-signin is included in your project
 
 android {
     defaultConfig {
@@ -50,32 +45,13 @@ dependencies {
 //   }
 // }
 
-cdvPluginPostBuildExtras.add({
-    apply plugin: 'com.google.gms.google-services'
-})
-
-// OPTIONAL: apply the Crashlytics Gradle plugin, which is what generates the Crashlytics
-// build ID (assets/crashlytics-build.properties + the mapping file id). firebase-crashlytics
-// 18/19 needs it, otherwise FirebaseInitProvider aborts the app at launch with
-// "IllegalStateException: The Crashlytics build ID is missing". 
-// MABS owns the Gradle toolchain, so this is opt-in and UNVERIFIED on MABS: enable it only if
-// you need symbolicated crash reports and you can test a build, then DELETE
-// src/android/cordova-plugin-firebase-crashlytics.xml (and its plugin.xml resource-file entry)
-// so the com.crashlytics.RequireBuildId override cannot clash with the generated resource.
-// firebase-crashlytics-gradle 3.0.6 only depends on kotlin-stdlib-jdk8 1.8.0, so it does not
-// reintroduce the Kotlin 2.x metadata problem that forced the Firebase pins above.
-// buildscript {
-//   repositories {
-//     google()
-//     mavenCentral()
-//   }
-//   dependencies {
-//     classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.6'
-//   }
-// }
+// NOTE: The com.google.gms.google-services Gradle plugin application has been removed.
+// This plugin is responsible for processing google-services.json and generating resources.
+// It must be applied by one of these methods:
+// 1. Include cordova-plugin-google-signin in your project (it adds this plugin)
+// 2. Add it to your app's build.gradle manually
+// 3. For MABS 11, the main project's build.gradle may already include it
 //
-// cdvPluginPostBuildExtras.add({
-//   apply plugin: 'com.google.gms.google-services'
-//   // google-services must be applied before the Crashlytics plugin.
-//   apply plugin: 'com.google.firebase.crashlytics'
-// })
+// The google-services.json file is still deployed by this plugin and will be used
+// by Firebase SDKs at runtime even without the Gradle plugin (though some build-time
+// code generation features won't work).
