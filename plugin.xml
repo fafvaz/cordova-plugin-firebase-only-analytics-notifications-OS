@@ -82,8 +82,7 @@
    </platform>
 
   <platform name="ios">
-<!--     <hook type="after_plugin_install" src="scripts/crashlytics/ios/after_plugin_install.js" />
-    <hook type="before_plugin_uninstall" src="scripts/crashlytics/ios/before_plugin_uninstall.js" /> -->
+<!--     hooks for the legacy Fabric/Crashlytics SDK were removed (dead on MABS 11/12) -->
     <hook type="before_plugin_install" src="scripts/configurations/unzipAndCopySound.js" />
 
     <config-file parent="/*" target="config.xml">

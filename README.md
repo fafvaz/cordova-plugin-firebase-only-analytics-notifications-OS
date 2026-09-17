@@ -2,6 +2,19 @@
 This plugin brings push notifications, analytics, event tracking, crash reporting and more from Google Firebase to your Cordova project.
 Android and iOS supported.
 
+## MABS Compatibility (OutSystems)
+This plugin version (0.3.0+) is built for **OutSystems MABS 11 and MABS 12.x**:
+
+* No `compileSdkVersion` or Android Gradle Plugin overrides (MABS owns the toolchain: Gradle 8 / AGP 8 / Java 17, compileSdk 34+).
+* `com.google.gms:google-services` **4.5.0** (applied via `cdvPluginPostBuildExtras`).
+* Android: Firebase **Analytics 22.5.0**, **Messaging 24.1.2**, **Config 23.0.1**, **Performance 22.0.3**, **Dynamic Links 22.1.0**, **Auth 23.2.1**, **Crashlytics 19.4.4**.
+* iOS: pods `Firebase/Analytics` and `Firebase/Messaging` **~> 11.0** (Xcode 16 / iOS 18 toolchain ready; Firebase 12 is intentionally *not* used because it raises the minimum iOS to 15).
+* The legacy Fabric Crashlytics SDK (`com.crashlytics.android` / `io.fabric`) and its Gradle plugin/hooks were removed; crash reporting now uses the modern `FirebaseCrashlytics` API (JS methods `forceCrashlytics` and `setCrashlyticsUserId` keep working).
+
+### Coexistence with the Adobe plugin
+Tested/compatible with the OutSystems Forge **Adobe Experience Platform Connector** (v1.0.2 — ACPCore/ACPAnalytics/ACPTarget). The Adobe connector adds no manifest receivers/services and does not swizzle the app delegate, so it does not conflict with this plugin's FCM message service or notification delegate handling. Note that Adobe's ACP mobile SDKs are deprecated by Adobe; plan a migration to the AEPSDK (Edge) if Adobe analytics is strategic.
+
+
 ## Firebase Configuration Files
 1) Download your Firebase configuration files, GoogleService-Info.plist for ios and google-services.json for android.
 2) Create a zipped folder with the name "google-services.zip" and put both configuration files inside.
