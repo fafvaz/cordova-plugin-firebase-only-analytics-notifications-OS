@@ -3,11 +3,12 @@ This plugin brings push notifications, analytics, event tracking, crash reportin
 Android and iOS supported.
 
 ## MABS Compatibility (OutSystems)
-This plugin version (0.3.0+) is built for **OutSystems MABS 11 and MABS 12.x**:
+This plugin version (0.3.1+) is built for **OutSystems MABS 11 and MABS 12.x**:
 
 * No `compileSdkVersion` or Android Gradle Plugin overrides (MABS owns the toolchain: Gradle 8 / AGP 8 / Java 17, compileSdk 34+).
 * `com.google.gms:google-services` **4.5.0** (applied via `cdvPluginPostBuildExtras`).
-* Android: Firebase **Analytics 22.5.0**, **Messaging 24.1.2**, **Config 23.0.1**, **Performance 22.0.3**, **Dynamic Links 22.1.0**, **Auth 23.2.1**, **Crashlytics 19.4.4**.
+* Android: Firebase **Analytics 22.0.2**, **Messaging 24.0.3**, **Config 22.0.1**, **Performance 21.0.4**, **Dynamic Links 22.1.0**, **Auth 23.0.0**, **Crashlytics 19.0.3**.
+  These are the newest Firebase Android versions whose Kotlin metadata (≤ 2.0) can be read by MABS 12.1's Kotlin 1.9 compiler. Firebase artifacts published after Nov 2024 (e.g. analytics 22.5.0, auth 23.2.1) are compiled with Kotlin 2.1 and fail `kaptGenerateStubsDebugKotlin` with "metadata is 2.1.0, expected version is 1.9.0" — do not upgrade beyond these pins until MABS ships Kotlin 2.1+.
 * iOS: pods `Firebase/Analytics` and `Firebase/Messaging` **~> 11.0** (Xcode 16 / iOS 18 toolchain ready; Firebase 12 is intentionally *not* used because it raises the minimum iOS to 15).
 * The legacy Fabric Crashlytics SDK (`com.crashlytics.android` / `io.fabric`) and its Gradle plugin/hooks were removed; crash reporting now uses the modern `FirebaseCrashlytics` API (JS methods `forceCrashlytics` and `setCrashlyticsUserId` keep working).
 

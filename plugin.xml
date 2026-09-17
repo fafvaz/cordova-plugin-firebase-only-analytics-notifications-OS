@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-firebase" version="0.3.0" 
+<plugin id="cordova-plugin-firebase" version="0.3.1" 
   xmlns="http://apache.org/cordova/ns/plugins/1.0" 
   xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -74,10 +74,10 @@
     <source-file src="src/android/OnNotificationOpenActivity.java" target-dir="src/org/apache/cordova/firebase" />
 
     <framework src="src/android/build.gradle" custom="true" type="gradleReference" />
-    <framework src="com.google.firebase:firebase-analytics:22.5.0" />
-    <framework src="com.google.firebase:firebase-messaging:24.1.2" />
-    <framework src="com.google.firebase:firebase-config:23.0.1" />
-    <framework src="com.google.firebase:firebase-perf:22.0.3" />
+    <framework src="com.google.firebase:firebase-analytics:22.0.2" />
+    <framework src="com.google.firebase:firebase-messaging:24.0.3" />
+    <framework src="com.google.firebase:firebase-config:22.0.1" />
+    <framework src="com.google.firebase:firebase-perf:21.0.4" />
     <framework src="com.google.firebase:firebase-dynamic-links:22.1.0" />
    </platform>
 
