@@ -64,6 +64,9 @@
     <resource-file src="google-services.json" target="./google-services.json" />
     <resource-file src="src/android/cordova-plugin-firebase-strings.xml" target="res/values/cordova-plugin-firebase-strings.xml" />
     <resource-file src="src/android/cordova-plugin-firebase-colors.xml" target="res/values/cordova-plugin-firebase-colors.xml" />
+    <!-- resource-file targets are resolved relative to app/src/main (cordova-android
+         lib/pluginHandlers.js), so this lands in app/src/main/res/values/. -->
+    <resource-file src="src/android/cordova-plugin-firebase-crashlytics.xml" target="res/values/cordova-plugin-firebase-crashlytics.xml" />
 
     <source-file src="src/android/FirebasePlugin.java" target-dir="src/org/apache/cordova/firebase" />
     <source-file src="src/android/OnNotificationOpenReceiver.java" target-dir="src/org/apache/cordova/firebase" />

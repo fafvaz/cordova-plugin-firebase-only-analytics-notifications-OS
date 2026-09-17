@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!--
+    MABS/OutSystems builds never apply the Crashlytics Gradle plugin
+    (com.google.firebase:firebase-crashlytics-gradle), because MABS owns the Gradle
+    toolchain, and that plugin is the only thing that generates a Crashlytics build ID
+    (the R8 mapping file id, also written to assets/crashlytics-build.properties).
+
+    Without it, firebase-crashlytics 18/19 aborts the whole Firebase initialization:
+    FirebaseInitProvider -> FirebaseApp.initializeApp -> CrashlyticsCore.onPreExecute
+    throws "java.lang.IllegalStateException: The Crashlytics build ID is missing. This
+    occurs when the Crashlytics Gradle plugin is missing from your app's build
+    configuration." and the app crashes on every launch, before any Cordova code runs.
+
+    CrashlyticsCore.onPreExecute() reads this exact boolean resource (verified with javap
+    against firebase-crashlytics 19.0.3: CommonUtils.getBooleanResourceValue(context,
+    "com.crashlytics.RequireBuildId", true), and isBuildIdValid() returns true
+    immediately when it is false, logging "Configured not to require a build ID.").
+    Setting it to false lets Crashlytics initialize without a build ID, so Firebase
+    Analytics, Cloud Messaging, Remote Config, Performance and the plugin's own
+    recordException()/log()/setUserId() calls all keep working. Crash reports are still
+    recorded and uploaded, but they cannot be symbolicated against a mapping file
+    because no mapping file id exists.
+
+    If you ever manage to apply the Crashlytics Gradle plugin in the MABS build (see the
+    commented block in src/android/build.gradle), remove this file/entry: the plugin then
+    supplies a real build ID, and leaving this override in place risks a duplicate
+    resource error.
+  -->
+  <bool name="com.crashlytics.RequireBuildId">false</bool>
+</resources>

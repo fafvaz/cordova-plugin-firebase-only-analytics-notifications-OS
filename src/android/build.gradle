@@ -51,3 +51,29 @@ dependencies {
 cdvPluginPostBuildExtras.add({
   apply plugin: 'com.google.gms.google-services'
 })
+
+// OPTIONAL: apply the Crashlytics Gradle plugin, which is what generates the Crashlytics
+// build ID (assets/crashlytics-build.properties + the mapping file id). firebase-crashlytics
+// 18/19 needs it, otherwise FirebaseInitProvider aborts the app at launch with
+// "IllegalStateException: The Crashlytics build ID is missing".
+// MABS owns the Gradle toolchain, so this is opt-in and UNVERIFIED on MABS: enable it only if
+// you need symbolicated crash reports and you can test a build, then DELETE
+// src/android/cordova-plugin-firebase-crashlytics.xml (and its plugin.xml resource-file entry)
+// so the com.crashlytics.RequireBuildId override cannot clash with the generated resource.
+// firebase-crashlytics-gradle 3.0.6 only depends on kotlin-stdlib-jdk8 1.8.0, so it does not
+// reintroduce the Kotlin 2.x metadata problem that forced the Firebase pins above.
+// buildscript {
+//   repositories {
+//     google()
+//     mavenCentral()
+//   }
+//   dependencies {
+//     classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.6'
+//   }
+// }
+//
+// cdvPluginPostBuildExtras.add({
+//   apply plugin: 'com.google.gms.google-services'
+//   // google-services must be applied before the Crashlytics plugin.
+//   apply plugin: 'com.google.firebase.crashlytics'
+// })
