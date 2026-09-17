@@ -9,7 +9,8 @@ This plugin version (0.3.1+) is built for **OutSystems MABS 11 and MABS 12.x**:
 * `com.google.gms:google-services` **4.5.0** (applied via `cdvPluginPostBuildExtras`).
 * Android: Firebase **Analytics 22.0.2**, **Messaging 24.0.3**, **Config 22.0.1**, **Performance 21.0.4**, **Dynamic Links 22.1.0**, **Auth 23.0.0**, **Crashlytics 19.0.3**.
   These are the newest Firebase Android versions whose Kotlin metadata (≤ 2.0) can be read by MABS 12.1's Kotlin 1.9 compiler. Firebase artifacts published after Nov 2024 (e.g. analytics 22.5.0, auth 23.2.1) are compiled with Kotlin 2.1 and fail `kaptGenerateStubsDebugKotlin` with "metadata is 2.1.0, expected version is 1.9.0" — do not upgrade beyond these pins until MABS ships Kotlin 2.1+.
-* iOS: pods `Firebase/Analytics` and `Firebase/Messaging` **~> 11.0** (Xcode 16 / iOS 18 toolchain ready; Firebase 12 is intentionally *not* used because it raises the minimum iOS to 15).
+* iOS: pods `Firebase/Analytics` and `Firebase/Messaging` **~> 10.29.0** (last Firebase 10.x, Xcode 16-ready).
+  Why 10.x and not 11/12: apps that include GoogleSignIn-based plugins pin `GoogleUtilities ~> 7.13.0` in the Podfile (MABS pods.json), and **all Firebase iOS 11.x releases require `GoogleUtilities ~> 8.0`** — `pod install` then fails with "CocoaPods could not find compatible versions for pod GoogleUtilities/MethodSwizzler". FirebaseAnalytics 10.29.0 requires `GoogleUtilities ~> 7.11`, which resolves cleanly to 7.13.3. If the app ever upgrades to GoogleSignIn 8.x (GoogleUtilities 8.x), Firebase iOS 11/12 can be adopted.
 * The legacy Fabric Crashlytics SDK (`com.crashlytics.android` / `io.fabric`) and its Gradle plugin/hooks were removed; crash reporting now uses the modern `FirebaseCrashlytics` API (JS methods `forceCrashlytics` and `setCrashlyticsUserId` keep working).
 
 ### Coexistence with the Adobe plugin
