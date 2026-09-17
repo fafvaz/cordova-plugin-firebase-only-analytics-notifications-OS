@@ -1,0 +1,6 @@
+// NOTE: build-extras.gradle is not referenced by this plugin's plugin.xml and is
+// kept only for compatibility with build systems that auto-include it.
+// The Fabric-era 'com.google.firebase.crashlytics' plugin was removed - it breaks
+// AGP 8.x (MABS 11+) builds. Crashlytics support was dropped from this plugin
+// (analytics + notifications only).
+apply plugin: 'com.google.gms.google-services'
