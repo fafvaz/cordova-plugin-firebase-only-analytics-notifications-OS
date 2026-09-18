@@ -76,12 +76,18 @@
     <source-file src="src/android/OnNotificationOpenActivity.java" target-dir="src/org/apache/cordova/firebase" />
 
     <framework src="src/android/build.gradle" custom="true" type="gradleReference" />
-    <framework src="com.google.gms:google-services:4.3.3" />
-    <framework src="com.google.firebase:firebase-analytics:21.5.1" />
-    <framework src="com.google.firebase:firebase-messaging:23.4.1" />
-    <framework src="com.google.firebase:firebase-config:21.6.1" />
-    <framework src="com.google.firebase:firebase-perf:20.5.2" />
-    <framework src="com.google.firebase:firebase-dynamic-links:21.2.0" />
+    <!-- MABS 12+ template resource files were renamed to cdv_strings.xml / cdv_colors.xml /
+         cdv_themes.xml. The plugin keeps its own custom names (cordova-plugin-firebase-*)
+         so they never clash with the app template's resources. Java code looks up resources
+         by name via getIdentifier(), so the physical file name does not affect runtime. -->
+    <resource-file src="src/android/cordova-plugin-firebase-crashlytics.xml" target="res/values/cordova-plugin-firebase-crashlytics.xml" />
+    <framework src="com.google.gms:google-services:4.5.0" />
+    <framework src="com.google.firebase:firebase-analytics:22.0.2" />
+    <framework src="com.google.firebase:firebase-messaging:24.0.3" />
+    <framework src="com.google.firebase:firebase-config:22.0.1" />
+    <framework src="com.google.firebase:firebase-perf:21.0.4" />
+    <framework src="com.google.firebase:firebase-dynamic-links:22.1.0" />
+    <framework src="com.google.firebase:firebase-auth:23.0.0" />
    </platform>
 
   <platform name="ios">
