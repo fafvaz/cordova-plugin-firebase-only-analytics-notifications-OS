@@ -2,25 +2,6 @@
 This plugin brings push notifications, analytics, event tracking, crash reporting and more from Google Firebase to your Cordova project.
 Android and iOS supported.
 
-## MABS Compatibility (OutSystems)
-This plugin version (0.3.1+) is built for **OutSystems MABS 11 and MABS 12.x**:
-
-* No `compileSdkVersion` or Android Gradle Plugin overrides (MABS owns the toolchain: Gradle 8 / AGP 8 / Java 17, compileSdk 34+).
-* `com.google.gms:google-services` **4.5.0** (applied via `cdvPluginPostBuildExtras`).
-* Android: Firebase **Analytics 22.0.2**, **Messaging 24.0.3**, **Config 22.0.1**, **Performance 21.0.4**, **Dynamic Links 22.1.0**, **Auth 23.0.0**, **Crashlytics 19.0.3**.
-  These are the newest Firebase Android versions whose Kotlin metadata (≤ 2.0) can be read by MABS 12.1's Kotlin 1.9 compiler. Firebase artifacts published after Nov 2024 (e.g. analytics 22.5.0, auth 23.2.1) are compiled with Kotlin 2.1 and fail `kaptGenerateStubsDebugKotlin` with "metadata is 2.1.0, expected version is 1.9.0" — do not upgrade beyond these pins until MABS ships Kotlin 2.1+.
-* iOS: pods `Firebase/Analytics` and `Firebase/Messaging` **~> 10.29.0** (last Firebase 10.x, Xcode 16-ready).
-  Why 10.x and not 11/12: apps that include GoogleSignIn-based plugins pin `GoogleUtilities ~> 7.13.0` in the Podfile (MABS pods.json), and **all Firebase iOS 11.x releases require `GoogleUtilities ~> 8.0`** — `pod install` then fails with "CocoaPods could not find compatible versions for pod GoogleUtilities/MethodSwizzler". FirebaseAnalytics 10.29.0 requires `GoogleUtilities ~> 7.11`, which resolves cleanly to 7.13.3. If the app ever upgrades to GoogleSignIn 8.x (GoogleUtilities 8.x), Firebase iOS 11/12 can be adopted.
-* The legacy Fabric Crashlytics SDK (`com.crashlytics.android` / `io.fabric`) and its Gradle plugin/hooks were removed; crash reporting now uses the modern `FirebaseCrashlytics` API. The native actions `logError`, `forceCrashlytics` and `setCrashlyticsUserId` are still dispatched on Android (their JS wrappers are commented out in `www/firebase.js`, so call them via `cordova.exec` if you need them).
-* `FirebaseCrashlytics.crash()` was **removed in Crashlytics 19.0.0** (the version pinned here is 19.0.3), which is why MABS 12.1 failed with `error: cannot find symbol ... method crash()`. `forceCrashlytics` now throws an uncaught `RuntimeException` on the UI thread instead, which is the supported way to force a fatal crash and is still recorded and reported by Crashlytics.
-* **Crashlytics 19.x also crashes the app at startup unless the Crashlytics *Gradle* plugin is applied**, which MABS builds never do (MABS owns the Gradle toolchain and only google-services is wired up). `FirebaseInitProvider` throws before any Cordova code runs:
-  `java.lang.RuntimeException: Unable to get provider com.google.firebase.provider.FirebaseInitProvider: java.lang.IllegalStateException: The Crashlytics build ID is missing. This occurs when the Crashlytics Gradle plugin is missing from your app's build configuration.`
-  The build ID is the R8 mapping-file id, generated only by `com.google.firebase:firebase-crashlytics-gradle`, so `src/android/cordova-plugin-firebase-crashlytics.xml` ships `<bool name="com.crashlytics.RequireBuildId">false</bool>` into `app/src/main/res/values/`. `CrashlyticsCore.onPreExecute()` reads exactly that resource (verified with `javap` on the 19.0.3 AAR: `CommonUtils.getBooleanResourceValue(context, "com.crashlytics.RequireBuildId", true)` → `isBuildIdValid()` returns `true` and logs *"Configured not to require a build ID."*), so Crashlytics initializes without a build ID and Analytics/FCM/Remote Config/Performance plus `recordException()`/`log()`/`setUserId()` keep working. Crash reports are still recorded and uploaded, but they are **not symbolicated** (no mapping file id). If a MABS build ever applies the Crashlytics Gradle plugin, delete that resource file to avoid a duplicate-resource error and to regain full build-ID + mapping support (see the commented block in `src/android/build.gradle`).
-
-### Coexistence with the Adobe plugin
-Tested/compatible with the OutSystems Forge **Adobe Experience Platform Connector** (v1.0.2 — ACPCore/ACPAnalytics/ACPTarget). The Adobe connector adds no manifest receivers/services and does not swizzle the app delegate, so it does not conflict with this plugin's FCM message service or notification delegate handling. Note that Adobe's ACP mobile SDKs are deprecated by Adobe; plan a migration to the AEPSDK (Edge) if Adobe analytics is strategic.
-
-
 ## Firebase Configuration Files
 1) Download your Firebase configuration files, GoogleService-Info.plist for ios and google-services.json for android.
 2) Create a zipped folder with the name "google-services.zip" and put both configuration files inside.
