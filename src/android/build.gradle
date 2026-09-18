@@ -1,4 +1,4 @@
-﻿android {
+android {
    compileSdkVersion 30 // ou superior
   defaultConfig {
     multiDexEnabled true
@@ -12,12 +12,13 @@
 buildscript {
   repositories {
     google()
-    mavenCentral()
+     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:4.1.0'
-    classpath 'com.google.gms:google-services:4.5.0'
-    classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.8'
+     classpath 'com.android.tools.build:gradle:4.1.0' 
+    classpath 'com.google.gms:google-services:4.3.3'
+    classpath 'com.android.tools.build:gradle:3.5.2'
+    classpath 'com.google.firebase:firebase-crashlytics-gradle:2.4.1'
   }
 }
 
@@ -42,13 +43,14 @@ repositories {
 
 dependencies {
   implementation 'me.leolin:ShortcutBadger:1.1.22@aar'
-  implementation 'com.google.firebase:firebase-auth:23.0.0'
-  implementation 'com.google.firebase:firebase-analytics:22.0.2'
-  implementation('com.google.firebase:firebase-crashlytics:19.0.3') {
+  implementation 'com.google.firebase:firebase-auth:22.3.1'
+  implementation 'com.google.firebase:firebase-core:21.1.1'
+  implementation('com.crashlytics.sdk.android:crashlytics:2.10.1@aar') {
     transitive = true
   }
 }
 
 cdvPluginPostBuildExtras.add({
   apply plugin: 'com.google.gms.google-services'
+  apply plugin: 'com.google.firebase.crashlytics'
 })
