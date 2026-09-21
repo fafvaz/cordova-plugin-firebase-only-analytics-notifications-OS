@@ -568,13 +568,14 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     // 5. Everything is fine: fire the system dialog (must run on the UI thread).
     activity.runOnUiThread(new Runnable() {
       public void run() {
-        boolean started = PermissionHelper.requestPermission(FirebasePlugin.this, REQUEST_CODE_ENABLE_PERMISSION, permission);
-        if (!started) {
-          Log.d(TAG, "PermissionHelper.requestPermission returned false");
-          callbackContext.error("REQUEST_FAILED: PermissionHelper.requestPermission returned false "
-              + "(the request could not be dispatched).");
+        try {
+          // Note: PermissionHelper.requestPermission returns void in this cordova-android
+          // version; the outcome arrives asynchronously in onRequestPermissionResult().
+          PermissionHelper.requestPermission(FirebasePlugin.this, REQUEST_CODE_ENABLE_PERMISSION, permission);
+        } catch (Exception e) {
+          Log.d(TAG, "Permission request failed to dispatch: " + e.getMessage());
+          callbackContext.error("REQUEST_FAILED: the permission request could not be dispatched: " + e.getMessage());
         }
-        // If it started, the answer comes back asynchronously in onRequestPermissionResult().
       }
     });
   }
