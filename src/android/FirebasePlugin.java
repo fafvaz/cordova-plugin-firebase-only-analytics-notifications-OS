@@ -44,6 +44,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -519,35 +521,109 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
 
     this.callbackContext = callbackContext;
 
-  System.out.println("PermissionHelper.hasPermission(this, android.permission.POST_NOTIFICATIONS)");
-  System.out.println(PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS"));
-   
-    if (PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS")) {
-        callbackContext.success();
-    } else {
-       System.out.println("pede a permissao: ");
-      
-        PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, "android.permission.POST_NOTIFICATIONS");
+    final String permission = "android.permission.POST_NOTIFICATIONS";
+    final Activity activity = cordova.getActivity();
+
+    Log.d(TAG, "requestPermissions called. SDK: " + android.os.Build.VERSION.SDK_INT);
+
+    // 1. Runtime notification permission only exists on Android 13+ (API 33).
+    //    On Android 12 and below there is no permission dialog to show: notifications
+    //    are controlled by the system "App notifications" toggle, not by a permission.
+    if (android.os.Build.VERSION.SDK_INT < 33) {
+      Log.d(TAG, "POST_NOTIFICATIONS not required below Android 13");
+      callbackContext.success("NOT_REQUIRED: POST_NOTIFICATIONS only exists on Android 13+ (device SDK "
+          + android.os.Build.VERSION.SDK_INT + "); notifications are controlled by the system notification toggle instead.");
+      return;
     }
- }
+
+    // 2. Already granted -> nothing to request.
+    if (PermissionHelper.hasPermission(this, permission)) {
+      Log.d(TAG, "POST_NOTIFICATIONS already granted");
+      callbackContext.success();
+      return;
+    }
+
+    // 3. Is the permission declared in the merged AndroidManifest? If not, the system
+    //    will auto-deny every request without ever showing a dialog.
+    if (!isPermissionDeclaredInManifest(permission)) {
+      Log.d(TAG, "POST_NOTIFICATIONS missing from AndroidManifest.xml");
+      callbackContext.error("MANIFEST_MISSING: POST_NOTIFICATIONS is not declared in AndroidManifest.xml. "
+          + "Add <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>.");
+      return;
+    }
+
+    // 4. Detect "Don't ask again" (permanently denied). On the very first request
+    //    shouldShowRequestPermissionRationale() is also false, so we remember previous
+    //    denials in SharedPreferences to tell the two cases apart.
+    final SharedPreferences prefs = activity.getApplicationContext()
+        .getSharedPreferences(TAG, Context.MODE_PRIVATE);
+    if (!activity.shouldShowRequestPermissionRationale(permission)
+        && prefs.getBoolean("post_notifications_denied_before", false)) {
+      Log.d(TAG, "POST_NOTIFICATIONS permanently denied by user");
+      callbackContext.error("PERMANENTLY_DENIED: the user selected 'Don't ask again'. "
+          + "Notifications can only be re-enabled from Settings > Apps > [app] > Notifications.");
+      return;
+    }
+
+    // 5. Everything is fine: fire the system dialog (must run on the UI thread).
+    activity.runOnUiThread(new Runnable() {
+      public void run() {
+        boolean started = PermissionHelper.requestPermission(FirebasePlugin.this, REQUEST_CODE_ENABLE_PERMISSION, permission);
+        if (!started) {
+          Log.d(TAG, "PermissionHelper.requestPermission returned false");
+          callbackContext.error("REQUEST_FAILED: PermissionHelper.requestPermission returned false "
+              + "(the request could not be dispatched).");
+        }
+        // If it started, the answer comes back asynchronously in onRequestPermissionResult().
+      }
+    });
+  }
+
+  private boolean isPermissionDeclaredInManifest(String permission) {
+    try {
+      Context ctx = cordova.getActivity().getApplicationContext();
+      PackageInfo info = ctx.getPackageManager()
+          .getPackageInfo(ctx.getPackageName(), PackageManager.GET_PERMISSIONS);
+      if (info.requestedPermissions != null) {
+        for (String p : info.requestedPermissions) {
+          if (permission.equals(p)) {
+            return true;
+          }
+        }
+      }
+    } catch (Exception e) {
+      Log.d(TAG, "Error reading manifest permissions: " + e.getMessage());
+    }
+    return false;
+  }
 
     @Override
     public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
-      System.out.println("requestCode");
-      System.out.println(requestCode);
-      System.out.println("REQUEST_CODE_ENABLE_PERMISSION");
-      System.out.println(REQUEST_CODE_ENABLE_PERMISSION);
-      System.out.println("grantResults[0]");
-      System.out.println(grantResults[0]);
-      System.out.println("PackageManager.PERMISSION_GRANTED");
-      System.out.println(PackageManager.PERMISSION_GRANTED);
-      
-        if (requestCode == REQUEST_CODE_ENABLE_PERMISSION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                callbackContext.success();
+        if (requestCode != REQUEST_CODE_ENABLE_PERMISSION || callbackContext == null) {
+            return;
+        }
+
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            // Success: clear the permanent-denial flag so future requests behave normally.
+            cordova.getActivity().getApplicationContext()
+                .getSharedPreferences(TAG, Context.MODE_PRIVATE)
+                .edit().remove("post_notifications_denied_before").apply();
+            Log.d(TAG, "POST_NOTIFICATIONS granted by user");
+            callbackContext.success();
+        } else {
+            // Distinguish a simple denial from a permanent ("Don't ask again") denial.
+            boolean permanentlyDenied = !cordova.getActivity()
+                .shouldShowRequestPermissionRationale(permissions[0]);
+            if (permanentlyDenied) {
+                cordova.getActivity().getApplicationContext()
+                    .getSharedPreferences(TAG, Context.MODE_PRIVATE)
+                    .edit().putBoolean("post_notifications_denied_before", true).apply();
+                Log.d(TAG, "POST_NOTIFICATIONS permanently denied by user");
+                callbackContext.error("PERMANENTLY_DENIED: user denied with 'Don't ask again'. "
+                    + "Enable from Settings > Apps > [app] > Notifications.");
             } else {
-              System.out.println("Permission denied");
-                callbackContext.error("Permission denied");
+                Log.d(TAG, "POST_NOTIFICATIONS denied by user (can be asked again)");
+                callbackContext.error("DENIED: user denied the notification permission; it can be requested again later.");
             }
         }
     }
