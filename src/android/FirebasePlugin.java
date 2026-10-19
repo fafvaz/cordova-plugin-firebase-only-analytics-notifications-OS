@@ -16,6 +16,7 @@ import org.apache.cordova.CallbackContext; // Para trabalhar com o CallbackConte
 import org.apache.cordova.CordovaInterface; // Se você estiver usando o CordovaInterface
 import org.apache.cordova.CordovaWebView; // Se você estiver usando o CordovaWebView
 import android.util.Log; // Para logging
+import com.crashlytics.android.Crashlytics; // Se você estiver usando Crashlytics
 
 
 //import android.support.annotation.NonNull;
@@ -43,6 +44,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -64,7 +67,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.AuthResult;
-import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
@@ -73,6 +75,8 @@ import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
 
 // Crashlytics
+import com.crashlytics.android.Crashlytics;
+import io.fabric.sdk.android.Fabric;
 
 // Dynamic Links
 import com.google.firebase.dynamiclinks.DynamicLink;
@@ -299,7 +303,7 @@ public class FirebasePlugin extends CordovaPlugin {
         try {
           json.put(key, bundle.get(key));
         } catch (JSONException e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
           return;
         }
@@ -378,7 +382,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                     }
                 });
             } catch (Exception e) {
-                FirebaseCrashlytics.getInstance().recordException(e);
+                Crashlytics.logException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -396,7 +400,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                 callbackContext.success(uniqueID);
                 Log.d(TAG, "getUniqueId success. ID: " + uniqueID);
             } catch (Exception e) {
-                FirebaseCrashlytics.getInstance().recordException(e);
+                Crashlytics.logException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -424,7 +428,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                     }
                 });
             } catch (Exception e) {
-                FirebaseCrashlytics.getInstance().recordException(e);
+                Crashlytics.logException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -445,7 +449,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success(object);
           Log.d(TAG, "hasPermission success. areEnabled: " + (areNotificationsEnabled ? "true" : "false"));
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -465,7 +469,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setBadgeNumber success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -483,7 +487,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success(number);
           Log.d(TAG, "getBadgeNumber success. number: " + Integer.toString(number));
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -506,7 +510,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "subscribe success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -517,35 +521,110 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
 
     this.callbackContext = callbackContext;
 
-  System.out.println("PermissionHelper.hasPermission(this, android.permission.POST_NOTIFICATIONS)");
-  System.out.println(PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS"));
-   
-    if (PermissionHelper.hasPermission(this, "android.permission.POST_NOTIFICATIONS")) {
-        callbackContext.success();
-    } else {
-       System.out.println("pede a permissao: ");
-      
-        PermissionHelper.requestPermission(this, REQUEST_CODE_ENABLE_PERMISSION, "android.permission.POST_NOTIFICATIONS");
+    final String permission = "android.permission.POST_NOTIFICATIONS";
+    final Activity activity = cordova.getActivity();
+
+    Log.d(TAG, "requestPermissions called. SDK: " + android.os.Build.VERSION.SDK_INT);
+
+    // 1. Runtime notification permission only exists on Android 13+ (API 33).
+    //    On Android 12 and below there is no permission dialog to show: notifications
+    //    are controlled by the system "App notifications" toggle, not by a permission.
+    if (android.os.Build.VERSION.SDK_INT < 33) {
+      Log.d(TAG, "POST_NOTIFICATIONS not required below Android 13");
+      callbackContext.success("NOT_REQUIRED: POST_NOTIFICATIONS only exists on Android 13+ (device SDK "
+          + android.os.Build.VERSION.SDK_INT + "); notifications are controlled by the system notification toggle instead.");
+      return;
     }
- }
+
+    // 2. Already granted -> nothing to request.
+    if (PermissionHelper.hasPermission(this, permission)) {
+      Log.d(TAG, "POST_NOTIFICATIONS already granted");
+      callbackContext.success();
+      return;
+    }
+
+    // 3. Is the permission declared in the merged AndroidManifest? If not, the system
+    //    will auto-deny every request without ever showing a dialog.
+    if (!isPermissionDeclaredInManifest(permission)) {
+      Log.d(TAG, "POST_NOTIFICATIONS missing from AndroidManifest.xml");
+      callbackContext.error("MANIFEST_MISSING: POST_NOTIFICATIONS is not declared in AndroidManifest.xml. "
+          + "Add <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>.");
+      return;
+    }
+
+    // 4. Detect "Don't ask again" (permanently denied). On the very first request
+    //    shouldShowRequestPermissionRationale() is also false, so we remember previous
+    //    denials in SharedPreferences to tell the two cases apart.
+    final SharedPreferences prefs = activity.getApplicationContext()
+        .getSharedPreferences(TAG, Context.MODE_PRIVATE);
+    if (!activity.shouldShowRequestPermissionRationale(permission)
+        && prefs.getBoolean("post_notifications_denied_before", false)) {
+      Log.d(TAG, "POST_NOTIFICATIONS permanently denied by user");
+      callbackContext.error("PERMANENTLY_DENIED: the user selected 'Don't ask again'. "
+          + "Notifications can only be re-enabled from Settings > Apps > [app] > Notifications.");
+      return;
+    }
+
+    // 5. Everything is fine: fire the system dialog (must run on the UI thread).
+    activity.runOnUiThread(new Runnable() {
+      public void run() {
+        try {
+          // Note: PermissionHelper.requestPermission returns void in this cordova-android
+          // version; the outcome arrives asynchronously in onRequestPermissionResult().
+          PermissionHelper.requestPermission(FirebasePlugin.this, REQUEST_CODE_ENABLE_PERMISSION, permission);
+        } catch (Exception e) {
+          Log.d(TAG, "Permission request failed to dispatch: " + e.getMessage());
+          callbackContext.error("REQUEST_FAILED: the permission request could not be dispatched: " + e.getMessage());
+        }
+      }
+    });
+  }
+
+  private boolean isPermissionDeclaredInManifest(String permission) {
+    try {
+      Context ctx = cordova.getActivity().getApplicationContext();
+      PackageInfo info = ctx.getPackageManager()
+          .getPackageInfo(ctx.getPackageName(), PackageManager.GET_PERMISSIONS);
+      if (info.requestedPermissions != null) {
+        for (String p : info.requestedPermissions) {
+          if (permission.equals(p)) {
+            return true;
+          }
+        }
+      }
+    } catch (Exception e) {
+      Log.d(TAG, "Error reading manifest permissions: " + e.getMessage());
+    }
+    return false;
+  }
 
     @Override
     public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
-      System.out.println("requestCode");
-      System.out.println(requestCode);
-      System.out.println("REQUEST_CODE_ENABLE_PERMISSION");
-      System.out.println(REQUEST_CODE_ENABLE_PERMISSION);
-      System.out.println("grantResults[0]");
-      System.out.println(grantResults[0]);
-      System.out.println("PackageManager.PERMISSION_GRANTED");
-      System.out.println(PackageManager.PERMISSION_GRANTED);
-      
-        if (requestCode == REQUEST_CODE_ENABLE_PERMISSION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                callbackContext.success();
+        if (requestCode != REQUEST_CODE_ENABLE_PERMISSION || callbackContext == null) {
+            return;
+        }
+
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            // Success: clear the permanent-denial flag so future requests behave normally.
+            cordova.getActivity().getApplicationContext()
+                .getSharedPreferences(TAG, Context.MODE_PRIVATE)
+                .edit().remove("post_notifications_denied_before").apply();
+            Log.d(TAG, "POST_NOTIFICATIONS granted by user");
+            callbackContext.success();
+        } else {
+            // Distinguish a simple denial from a permanent ("Don't ask again") denial.
+            boolean permanentlyDenied = !cordova.getActivity()
+                .shouldShowRequestPermissionRationale(permissions[0]);
+            if (permanentlyDenied) {
+                cordova.getActivity().getApplicationContext()
+                    .getSharedPreferences(TAG, Context.MODE_PRIVATE)
+                    .edit().putBoolean("post_notifications_denied_before", true).apply();
+                Log.d(TAG, "POST_NOTIFICATIONS permanently denied by user");
+                callbackContext.error("PERMANENTLY_DENIED: user denied with 'Don't ask again'. "
+                    + "Enable from Settings > Apps > [app] > Notifications.");
             } else {
-              System.out.println("Permission denied");
-                callbackContext.error("Permission denied");
+                Log.d(TAG, "POST_NOTIFICATIONS denied by user (can be asked again)");
+                callbackContext.error("DENIED: user denied the notification permission; it can be requested again later.");
             }
         }
     }
@@ -573,7 +652,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
         } catch (Exception e) {
           System.out.println("request 4");
           System.out.println(e);
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -592,7 +671,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "unsubscribe success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -636,7 +715,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                         }
                     });
             } catch (Exception e) {
-                FirebaseCrashlytics.getInstance().recordException(e);
+                Crashlytics.logException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -655,7 +734,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "clearAllNotifications success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().log(e.getMessage());
+          Crashlytics.log(e.getMessage());
         }
       }
     });
@@ -733,7 +812,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "logEvent success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -749,7 +828,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setScreenName success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -765,7 +844,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setUserId success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -781,7 +860,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setUserProperty success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -798,7 +877,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setAnalyticsCollectionEnabled success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().log(e.getMessage());
+          Crashlytics.log(e.getMessage());
           callbackContext.error(e.getMessage());
         }
       }
@@ -828,7 +907,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "startTrace success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -854,7 +933,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             Log.d(TAG, "incrementCounter trace not found");
           }
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -881,7 +960,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             Log.d(TAG, "stopTrace trace not found");
           }
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -907,7 +986,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             Log.d(TAG, "addTraceAttribute trace not found");
           }
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().log(e.getMessage());
+          Crashlytics.log(e.getMessage());
           callbackContext.error(e.getMessage());
         }
       }
@@ -924,7 +1003,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           callbackContext.success();
           Log.d(TAG, "setPerformanceCollectionEnabled success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().log(e.getMessage());
+          Crashlytics.log(e.getMessage());
           callbackContext.error(e.getMessage());
         }
       }
@@ -936,14 +1015,10 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
   //
   private void forceCrashlytics(final CallbackContext callbackContext) {
     Log.d(TAG, "forceCrashlytics called");
-    // FirebaseCrashlytics.crash() was removed in firebase-crashlytics 19.0.0, so an
-    // uncaught RuntimeException is thrown instead: this is the supported way to
-    // intentionally crash the app in order to test crash reporting.
-    // Throwing on the main (UI) thread guarantees the process is terminated and the
-    // crash is recorded and reported by Crashlytics as a fatal crash.
-    cordova.getActivity().runOnUiThread(new Runnable() {
+    final FirebasePlugin self = this;
+    cordova.getThreadPool().execute(new Runnable() {
       public void run() {
-        throw new RuntimeException("Force crashlytics: intentional crash to test crash reporting");
+        Crashlytics.getInstance().crash();
       }
     });
   }
@@ -953,11 +1028,11 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         try {
-          FirebaseCrashlytics.getInstance().recordException(new Exception(message));
+          Crashlytics.logException(new Exception(message));
           callbackContext.success(1);
           Log.d(TAG, "logError success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().log(e.getMessage());
+          Crashlytics.log(e.getMessage());
           callbackContext.error(e.getMessage());
         }
       }
@@ -969,11 +1044,11 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     cordova.getActivity().runOnUiThread(new Runnable() {
       public void run() {
         try {
-          FirebaseCrashlytics.getInstance().setUserId(userId);
+          Crashlytics.setUserIdentifier(userId);
           callbackContext.success();
           Log.d(TAG, "setCrashlyticsUserId success");
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1004,7 +1079,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                         }
                     });
             } catch (Exception e) {
-                FirebaseCrashlytics.getInstance().recordException(e);
+                Crashlytics.logException(e);
                 callbackContext.error(e.getMessage());
             }
         }
@@ -1040,7 +1115,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
             }
           });
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1067,14 +1142,14 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                                         callbackContext.success(object);
                                         Log.d(TAG, "getByteArray success");
                                     } catch (Exception e) {
-                                        FirebaseCrashlytics.getInstance().recordException(e);
+                                        Crashlytics.logException(e);
                                         callbackContext.error(e.getMessage());
                                         Log.e(TAG, "Error in getByteArray", e);
                                     }
                                 } else {
                                     Exception exception = task.getException();
                                     if (exception != null) {
-                                        FirebaseCrashlytics.getInstance().recordException(exception);
+                                        Crashlytics.logException(exception);
                                         callbackContext.error(exception.getMessage());
                                     } else {
                                         callbackContext.error("getByteArray failed");
@@ -1084,7 +1159,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                             }
                         });
             } catch (Exception e) {
-                FirebaseCrashlytics.getInstance().recordException(e);
+                Crashlytics.logException(e);
                 callbackContext.error(e.getMessage());
                 Log.e(TAG, "Error in getByteArray", e);
             }
@@ -1103,7 +1178,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           Log.d(TAG, "getValue success. value: " + value.asString());
           callbackContext.success(value.asString());
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1125,7 +1200,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
 
           callbackContext.success(info);
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1139,7 +1214,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
           
           callbackContext.success();
         } catch (Exception e) {
-          FirebaseCrashlytics.getInstance().recordException(e);
+          Crashlytics.logException(e);
           callbackContext.error(e.getMessage());
         }
       }
@@ -1160,7 +1235,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                                 } else {
                                     Exception exception = task.getException();
                                     if (exception != null) {
-                                        FirebaseCrashlytics.getInstance().recordException(exception);
+                                        Crashlytics.logException(exception);
                                         callbackContext.error(exception.getMessage());
                                     } else {
                                         callbackContext.error("setDefaultsAsync failed");
@@ -1170,7 +1245,7 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
                             }
                         });
             } catch (Exception e) {
-                FirebaseCrashlytics.getInstance().recordException(e);
+                Crashlytics.logException(e);
                 callbackContext.error(e.getMessage());
             }
         }
