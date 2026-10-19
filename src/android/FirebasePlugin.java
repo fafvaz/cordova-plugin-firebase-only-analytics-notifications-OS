@@ -1035,7 +1035,13 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     final FirebasePlugin self = this;
     cordova.getThreadPool().execute(new Runnable() {
       public void run() {
-        FirebaseCrashlytics.getInstance().crash();
+        // FirebaseCrashlytics for Android has no crash() method (verified against
+        // com.google.firebase:firebase-crashlytics 19.0.3 and current SDK sources),
+        // so calling it fails compilation with "cannot find symbol: method crash()".
+        // The official way to force a test crash is an uncaught exception, which
+        // Crashlytics captures and reports on the next app launch:
+        // https://firebase.google.com/docs/crashlytics/android/test-implementation
+        throw new RuntimeException("forceCrashlytics test crash");
       }
     });
   }
