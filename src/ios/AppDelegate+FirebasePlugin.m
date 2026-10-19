@@ -75,7 +75,10 @@
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
 
     NSDictionary *userInfo = notification.request.content.userInfo;
-    [self handleRemoteNotification:userInfo clickOpen:@"true"];
+    // Foreground arrival is a Push Impression (Adobe action "7"), not a click/open:
+    // the user has not interacted with the notification yet. A later tap triggers
+    // didReceiveNotificationResponse, which sends click ("2") + open ("1").
+    [self handleRemoteNotification:userInfo clickOpen:@"false"];
     completionHandler(UNNotificationPresentationOptionAlert);
 }
 
@@ -84,7 +87,19 @@
           withCompletionHandler:(void (^)(void))completionHandler {
 
     NSDictionary *userInfo = response.notification.request.content.userInfo;
-    [self handleRemoteNotification:userInfo clickOpen:@"true"];
+
+    if ([response.actionIdentifier isEqualToString:UNNotificationDismissActionIdentifier]) {
+        // The user cleared/dismissed the notification: Push Click tracking only
+        // (Adobe action "2") - the app was NOT opened, so no Push Open ("1").
+        // Only delivered for notifications whose category registers
+        // .customDismissAction (registered by the cordova-acp plugin as "DEFAULT").
+        NSMutableDictionary *userInfoMutable = [userInfo mutableCopy];
+        [userInfoMutable setValue:@"false" forKey:@"FromPushNotification"];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"FirebaseRemoteNotificationDismissedDispatch" object:userInfoMutable];
+    } else {
+        // User tapped the notification: Push Click ("2") + Push Open ("1").
+        [self handleRemoteNotification:userInfo clickOpen:@"true"];
+    }
     completionHandler();
 }
 

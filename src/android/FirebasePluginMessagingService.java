@@ -191,6 +191,20 @@ public class FirebasePluginMessagingService extends FirebaseMessagingService {
         .setContentIntent(pendingIntent)
         .setPriority(NotificationCompat.PRIORITY_MAX);
 
+      // Adobe Campaign Standard push tracking: fire when the user dismisses
+      // (swipes away) the notification, so a Push Click (action "2") can be sent.
+      // The receiver lives in the cordova-acp plugin; reference it by class-name
+      // string so this plugin still compiles when cordova-acp is not installed
+      // (the broadcast is simply dropped in that case).
+      Intent dismissIntent = new Intent();
+      dismissIntent.setClassName(getPackageName(),
+          "com.adobe.marketing.mobile.cordova.NotificationDismissedReceiver");
+      dismissIntent.putExtras(bundle);
+      PendingIntent dismissPendingIntent = PendingIntent.getBroadcast(
+          this, id.hashCode(), dismissIntent,
+          PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+      notificationBuilder.setDeleteIntent(dismissPendingIntent);
+
       // Title
       if (TextUtils.isEmpty(title) && android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.M) {
         int stringId = getApplicationInfo().labelRes;
