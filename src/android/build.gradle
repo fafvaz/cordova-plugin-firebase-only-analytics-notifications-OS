@@ -11,15 +11,22 @@ android {
 // MABS 12+ (Gradle 8 / AGP 8 / Java 17):
 // - Do NOT declare the Android Gradle Plugin classpath here (MABS owns it).
 // - Do NOT override compileSdkVersion (MABS sets it, e.g. 34/35).
-buildscript {
-  repositories {
-    google()
-    mavenCentral()
-  }
-  dependencies {
-    classpath 'com.google.gms:google-services:4.5.0'
-  }
-}
+//
+// This file is *not* a build script of its own: cordova-android copies it to
+// platforms/android/cordova-plugin-firebase/<package-suffix>-build.gradle and applies it
+// from platforms/android/app/build.gradle ("apply from: ../cordova-plugin-firebase/..."),
+// a script whose own buildscript classpath was compiled before this file runs. A
+// buildscript block here therefore does NOT add anything to the plugin lookup of the app
+// project, which is why the google-services block below was removed: it never made
+// `apply plugin: 'com.google.gms.google-services'` work and the MABS 12 build failed with
+//
+//   * Where: platforms/android/cordova-plugin-firebase/dev-build.gradle line: 52
+//   > Plugin with id 'com.google.gms.google-services' not found.
+//
+// google-services is enabled through cordova-android's own Gradle support instead: the
+// GradlePluginGoogleServicesEnabled preference injected by plugin.xml makes
+// app/build.gradle add "com.google.gms:google-services:<GRADLE_PLUGIN_GOOGLE_SERVICES_VERSION>"
+// to its buildscript and apply the plugin itself (cordova-android >= 12.0.0).
 
 repositories {
   google()
@@ -48,20 +55,26 @@ dependencies {
 //   }
 // }
 
-cdvPluginPostBuildExtras.add({
-  apply plugin: 'com.google.gms.google-services'
-})
+// google-services is applied by cordova-android itself (GradlePluginGoogleServicesEnabled
+// in plugin.xml + the note at the top of this file). Applying it here as well would run
+// the same plugin twice - the second run fails on the tasks/resources it registers again.
 
 // OPTIONAL: apply the Crashlytics Gradle plugin, which is what generates the Crashlytics
 // build ID (assets/crashlytics-build.properties + the mapping file id). firebase-crashlytics
 // 18/19 needs it, otherwise FirebaseInitProvider aborts the app at launch with
-// "IllegalStateException: The Crashlytics build ID is missing".
-// MABS owns the Gradle toolchain, so this is opt-in and UNVERIFIED on MABS: enable it only if
-// you need symbolicated crash reports and you can test a build, then DELETE
-// src/android/cordova-plugin-firebase-crashlytics.xml (and its plugin.xml resource-file entry)
-// so the com.crashlytics.RequireBuildId override cannot clash with the generated resource.
-// firebase-crashlytics-gradle 3.0.6 only depends on kotlin-stdlib-jdk8 1.8.0, so it does not
-// reintroduce the Kotlin 2.x metadata problem that forced the Firebase pins above.
+// "IllegalStateException: The Crashlytics build ID is missing" - which is why
+// src/android/cordova-plugin-firebase-crashlytics.xml ships
+// <bool name="com.crashlytics.RequireBuildId">false</bool> into app/src/main/res/values/
+// instead.
+// If you do enable it, DELETE that resource file (and its plugin.xml resource-file entry)
+// so the override cannot clash with the generated resource, and note that the recipe below
+// CANNOT simply be uncommented: exactly like the google-services block removed above, the
+// crashlytics-gradle classpath must live in the buildscript of the :app build script, and
+// this file is applied after that script has been compiled. Enabling it for real would
+// require patching platforms/android/app/build.gradle (e.g. from a hook) or an app-level
+// Gradle change, neither of which MABS exposes. firebase-crashlytics-gradle 3.0.6 only
+// depends on kotlin-stdlib-jdk8 1.8.0, so it would not reintroduce the Kotlin 2.x metadata
+// problem that forced the Firebase pins above.
 // buildscript {
 //   repositories {
 //     google()
@@ -73,7 +86,7 @@ cdvPluginPostBuildExtras.add({
 // }
 //
 // cdvPluginPostBuildExtras.add({
-//   apply plugin: 'com.google.gms.google-services'
-//   // google-services must be applied before the Crashlytics plugin.
+//   // google-services is already applied by cordova-android (the google-services plugin
+//   // must be applied before the Crashlytics plugin), so only this one is left.
 //   apply plugin: 'com.google.firebase.crashlytics'
 // })

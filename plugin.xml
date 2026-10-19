@@ -29,6 +29,28 @@
         <param name="onload" value="true" />
       </feature>
     </config-file>
+
+    <!-- MABS 12 / cordova-android >= 12.0.0: the google-services Gradle plugin is what turns
+         google-services.json into the generated resources Firebase reads at runtime
+         (FirebaseInitProvider throws "Failed to load FirebaseOptions from resource" without
+         them). It has to be on the classpath of the :app build script, which a plugin gradle
+         reference cannot provide: cordova-android applies that reference from
+         app/build.gradle, a script whose buildscript classpath is already compiled by then.
+         That is why the previous `apply plugin: 'com.google.gms.google-services'` in
+         src/android/build.gradle failed the MABS 12 build with:
+             * Where: platforms/android/cordova-plugin-firebase/dev-build.gradle line: 52
+             > Plugin with id 'com.google.gms.google-services' not found.
+         cordova-android implements the wiring itself: this preference makes
+         platforms/android/app/build.gradle add the com.google.gms:google-services artifact
+         (version from cordova-android's GRADLE_PLUGIN_GOOGLE_SERVICES_VERSION, 4.4.2 on
+         cordova-android 14.x) to its buildscript and apply the plugin at the end of the
+         script. An app can still override or disable it with its own
+         GradlePluginGoogleServicesVersion / GradlePluginGoogleServicesEnabled preference
+         (OutSystems: Extensibility Configurations), because the app's config.xml wins the
+         merge into the platform config.xml. -->
+    <config-file parent="/*" target="res/xml/config.xml">
+      <preference name="GradlePluginGoogleServicesEnabled" value="true" />
+    </config-file>
     
     <config-file target="AndroidManifest.xml" parent="/*">
       <uses-permission android:name="android.permission.INTERNET" />
