@@ -1,13 +1,2 @@
-// Intentionally empty and NOT referenced by plugin.xml (so it is never copied into the
-// platform). It used to contain:
-//
-//     apply plugin: 'com.google.gms.google-services'
-//
-// which cannot work on Gradle 8 / MABS 12: the google-services classpath can only be
-// declared in the buildscript of the :app build script, so applying the plugin from a
-// script that is "apply from:"-ed into it fails with
-// "Plugin with id 'com.google.gms.google-services' not found".
-//
-// The plugin is enabled through cordova-android's own Gradle support instead - see the
-// GradlePluginGoogleServicesEnabled preference in plugin.xml and the notes in
-// src/android/build.gradle.
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.firebase.crashlytics'
