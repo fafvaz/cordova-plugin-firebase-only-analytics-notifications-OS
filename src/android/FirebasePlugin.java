@@ -26,6 +26,7 @@ import android.util.Log;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -87,6 +88,10 @@ public class FirebasePlugin extends CordovaPlugin {
   protected static final String KEY = "badge";
   private static final String[]  POST_NOTIFICATION = {"android.permission.POST_NOTIFICATIONS"};
   private static final int REQUEST_CODE_ENABLE_PERMISSION = 1695;
+  private static final String MSG_FIREBASE_UNAVAILABLE =
+      "FirebaseApp is not initialized and could not be created. "
+      + "Check logcat tag FirebasePlugin for details - this usually means "
+      + "google-services.json / google_app_id is missing from the app build.";
 
   private static boolean inBackground = true;
   private static ArrayList<Bundle> notificationStack = null;
@@ -96,15 +101,69 @@ public class FirebasePlugin extends CordovaPlugin {
   private CallbackContext callbackContext;
   
 
+  /**
+   * Returns the default FirebaseApp for this process, initializing it on demand
+   * when no default app exists yet.
+   *
+   * The FirebaseInitProvider auto-init does not always run, and without a default
+   * app every Firebase call - most visibly FirebaseMessaging.getInstance()
+   * .getToken() used by getToken()/onTokenRefresh() and by the Adobe Campaign
+   * setPushIdentifier flow - throws "Default FirebaseApp is not initialized in
+   * this process ... Make sure to call FirebaseApp.initializeApp(Context) first".
+   *
+   * @param context any Context; the application context is used internally
+   * @return the default FirebaseApp, or null when initialization is impossible
+   *         (google_app_id missing from the app resources - check google-services.json)
+   */
+  private FirebaseApp ensureFirebaseApp(Context context) {
+    try {
+      // Succeeds when the default app already exists (FirebaseInitProvider or a
+      // previous call); throws IllegalStateException when it does not.
+      return FirebaseApp.getInstance();
+    } catch (IllegalStateException notInitialized) {
+      // No default app in this process yet - create it now, see below.
+    }
+
+    try {
+      FirebaseApp app = FirebaseApp.initializeApp(context.getApplicationContext());
+      if (app == null) {
+        // initializeApp() may return null when the default app already exists
+        // (e.g. it was created concurrently by the FirebaseInitProvider).
+        app = FirebaseApp.getInstance();
+      }
+      Log.d(TAG, "FirebaseApp initialized: " + app.getName());
+      return app;
+    } catch (Exception e) {
+      int appId = context.getResources().getIdentifier(
+          "google_app_id", "string", context.getPackageName());
+      Log.e(TAG, "FirebaseApp initialization failed: " + e.getMessage()
+          + (appId == 0
+              ? " google_app_id is MISSING from this app's resources - verify that "
+                  + "google-services.json is copied into the Android project and that the "
+                  + "google-services Gradle plugin processes it."
+              : " google_app_id resource was found, see the exception above."));
+      return null;
+    }
+  }
+
   @Override
   protected void pluginInitialize() {
     final Context context = this.cordova.getActivity().getApplicationContext();
     final Bundle extras = this.cordova.getActivity().getIntent().getExtras();
+    // Initialize the default FirebaseApp SYNCHRONOUSLY, before any JavaScript can
+    // reach getToken()/onTokenRefresh() and before the Adobe SDK asks FCM for a
+    // push token. Cordova calls pluginInitialize() before execute() for this
+    // plugin (onload=true), so token requests cannot race ahead of this call.
+    final FirebaseApp firebaseApp = ensureFirebaseApp(context);
     this.cordova.getThreadPool().execute(new Runnable() {
       public void run() {
         Log.d(TAG, "Starting Firebase plugin");
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(context);
-        mFirebaseAnalytics.setAnalyticsCollectionEnabled(true);
+        if (firebaseApp == null) {
+          Log.e(TAG, "Skipping Firebase Analytics setup: FirebaseApp is not initialized (see previous error).");
+        } else {
+          mFirebaseAnalytics = FirebaseAnalytics.getInstance(context);
+          mFirebaseAnalytics.setAnalyticsCollectionEnabled(true);
+        }
         if (extras != null && extras.size() > 1) {
           if (FirebasePlugin.notificationStack == null) {
             FirebasePlugin.notificationStack = new ArrayList<Bundle>();
@@ -357,8 +416,13 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
     Log.d(TAG, "onTokenRefresh called");
     FirebasePlugin.tokenRefreshCallbackContext = callbackContext;
 
+    final Context appContext = cordova.getActivity().getApplicationContext();
     cordova.getThreadPool().execute(new Runnable() {
         public void run() {
+            if (ensureFirebaseApp(appContext) == null) {
+                callbackContext.error(MSG_FIREBASE_UNAVAILABLE);
+                return;
+            }
             try {
                 FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
                     @Override
@@ -406,8 +470,13 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
 
   private void getToken(final CallbackContext callbackContext) {
     Log.d(TAG, "getToken called");
+    final Context appContext = cordova.getActivity().getApplicationContext();
     cordova.getThreadPool().execute(new Runnable() {
         public void run() {
+            if (ensureFirebaseApp(appContext) == null) {
+                callbackContext.error(MSG_FIREBASE_UNAVAILABLE);
+                return;
+            }
             try {
                 FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
                     @Override
@@ -677,8 +746,13 @@ private void onTokenRefresh(final CallbackContext callbackContext) {
   
   private void unregister(final CallbackContext callbackContext) {
     Log.d(TAG, "unregister called");
+    final Context appContext = cordova.getActivity().getApplicationContext();
     cordova.getThreadPool().execute(new Runnable() {
         public void run() {
+            if (ensureFirebaseApp(appContext) == null) {
+                callbackContext.error(MSG_FIREBASE_UNAVAILABLE);
+                return;
+            }
             try {
                 // Desregistrar o token atual
                 FirebaseMessaging.getInstance().deleteToken()
